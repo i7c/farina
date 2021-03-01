@@ -14,9 +14,9 @@
                                             :Path path}})
         {{{:keys [Code Message]} :Error} :ErrorResponse
          {:keys [Path UserName UserId] :as user} :User} response]
-    (if (some? Code)
-      (throw (IllegalStateException. Message))
-      user)))
+    (cond
+      (nil? Code) user
+      :else (throw (IllegalStateException. Message)))))
 
 (defn get-or-create-aws-user [username path]
   (let [response (aws/invoke iam {:op :GetUser
@@ -24,11 +24,10 @@
                                             :Path path}})
         {{{:keys [Code Message]} :Error} :ErrorResponse
          {:keys [Path UserName UserId] :as user} :User} response]
-    (if (some? Code)
-      (if (= Code "NoSuchEntity")
-        (create-aws-user username path)
-        (throw (IllegalStateException. Message)))
-      user)))
+    (cond
+      (nil? Code) user
+      (= Code "NoSuchEntity") (create-aws-user username path)
+      :else (throw (IllegalStateException. Message)))))
 
 (defn create-s3-bucket [bucketname]
   (let [response (aws/invoke s3 {:op :CreateBucket
@@ -36,7 +35,9 @@
                                            :CreateBucketConfiguration {:LocationConstraint region}}})
         {{:keys [Code Message]} :Error
          :keys [Location]} response]
-    (if (some? Code) (throw (IllegalStateException. Message)) Location)))
+    (cond
+      (nil? Code) Location
+      :else (throw (IllegalStateException. Message)))))
 
 (defn get-or-create-s3-bucket [bucketname]
   (let [response (aws/invoke s3 {:op :GetBucketLocation
