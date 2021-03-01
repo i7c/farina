@@ -12,12 +12,13 @@
   (let [response (aws/invoke iam {:op op
                                   :request {:UserName username
                                             :Path path}})
-        {{{:keys [Code Message]} :Error} :ErrorResponse
-         {:keys [Path UserName UserId] :as user} :User} response]
+        user (:User response)
+        code (get-in response [:ErrorResponse :Error :Code])
+        message (get-in response [:ErrorResponse :Error :Message])]
     (cond
-      (nil? Code) user
-      (and (= op :GetUser) (= Code "NoSuchEntity")) (aws-user-crud username path :CreateUser)
-      :else (throw (IllegalStateException. Message)))))
+      (nil? code) user
+      (and (= op :GetUser) (= code "NoSuchEntity")) (aws-user-crud username path :CreateUser)
+      :else (throw (IllegalStateException. message)))))
 
 (defn get-or-create-aws-user [username path]
   (aws-user-crud username path :GetUser))
