@@ -8,26 +8,19 @@
 (def iam (aws/client {:api :iam :region region}))
 (def s3 (aws/client {:api :s3 :region region}))
 
-(defn create-aws-user [username path]
-  (let [response (aws/invoke iam {:op :CreateUser
+(defn aws-user-crud [username path op]
+  (let [response (aws/invoke iam {:op op
                                   :request {:UserName username
                                             :Path path}})
         {{{:keys [Code Message]} :Error} :ErrorResponse
          {:keys [Path UserName UserId] :as user} :User} response]
     (cond
       (nil? Code) user
+      (and (= op :GetUser) (= Code "NoSuchEntity")) (aws-user-crud username path :CreateUser)
       :else (throw (IllegalStateException. Message)))))
 
 (defn get-or-create-aws-user [username path]
-  (let [response (aws/invoke iam {:op :GetUser
-                                  :request {:UserName username
-                                            :Path path}})
-        {{{:keys [Code Message]} :Error} :ErrorResponse
-         {:keys [Path UserName UserId] :as user} :User} response]
-    (cond
-      (nil? Code) user
-      (= Code "NoSuchEntity") (create-aws-user username path)
-      :else (throw (IllegalStateException. Message)))))
+  (aws-user-crud username path :GetUser))
 
 (defn create-s3-bucket [bucketname]
   (let [response (aws/invoke s3 {:op :CreateBucket
