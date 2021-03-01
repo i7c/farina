@@ -8,6 +8,7 @@
                  [com.cognitect.aws/api "0.8.505"]
                  [com.cognitect.aws/endpoints "1.1.11.960"]
                  [com.cognitect.aws/iam "811.2.844.0"]
+                 [com.cognitect.aws/s3 "810.2.817.0"]
                  [clj-http "3.12.0"]]
   :main ^:skip-aot farina.core
   :target-path "target/%s"
