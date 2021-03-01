@@ -1,5 +1,6 @@
 (ns farina.core
   (:require [clj-http.client :as client]
+            [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
             [cognitect.aws.credentials :as credentials])
   (:gen-class))
@@ -44,8 +45,31 @@
       (= Code "NoSuchBucket") (create-s3-bucket bucketname)
       :else (throw (IllegalStateException. Message)))))
 
-(defn -main [& args]
+(defn put-user-policy [username policyname policy]
+  (let [response (aws/invoke iam {:op :PutUserPolicy
+                                  :request {:UserName username
+                                            :PolicyName policyname
+                                            :PolicyDocument (json/write-str
+                                                              policy
+                                                              :escape-slash false)}})
+        code (get-in response [:ErrorResponse :Error :Code])
+        message (get-in response [:ErrorResponse :Error :Message])]
+    (cond
+      (nil? code) (:PutUserPolicyResponse response)
+      :else (throw (IllegalStateException. message)))))
+
+(defn setup-infrastructure []
   (let [basename "farina"
+        bucketname basename
         principal (get-or-create-aws-user basename (str "/" basename "/"))
-        bucket (get-or-create-s3-bucket basename)]
-    (println bucket)))
+        bucket (get-or-create-s3-bucket bucketname)
+        s3policy (put-user-policy
+                   (:UserName principal)
+                   "farina-s3"
+                   {:Version "2012-10-17"
+                    :Statement [{:Effect "Allow"
+                                 :Action "*"
+                                 :Resource (str "arn:aws:s3:::" bucketname "/*")}]})]))
+
+(defn -main [& args]
+  (setup-infrastructure))
