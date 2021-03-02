@@ -2,11 +2,13 @@
   (:require [clj-http.client :as client]
             [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
-            [cognitect.aws.credentials :as credentials]))
+            [cognitect.aws.credentials :as credentials]
+            [byte-streams]))
 
 (def region "eu-central-1")
 (def iam (aws/client {:api :iam :region region}))
 (def s3 (aws/client {:api :s3 :region region}))
+(def lambda (aws/client {:api :lambda :region region}))
 
 (defn aws-user-crud [username path op]
   (let [response (aws/invoke iam {:op op
@@ -89,6 +91,15 @@
         message (get-in response [:ErrorResponse :Error :Message])]
     (if (some? code) (throw (IllegalStateException. message)))))
 
+(defn create-lambda [fname role code]
+  (let [response (aws/invoke lambda {:op :CreateFunction
+                                     :request {:FunctionName fname
+                                               :Role role
+                                               :Runtime "java11"
+                                               :Handler "farina.core::handler"
+                                               :MemorySize 1024
+                                               :Code code}})]
+    (println response)))
 
 (defn setup-infrastructure [basename]
   (let [bucketname basename
@@ -111,5 +122,8 @@
                                  }]})
         rpolicies (doall (map
                            (partial attach-role-policy (:RoleName execrole))
-                           ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))]))
+                           ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
+        downloader (create-lambda (str basename "-downloader")
+                              (:Arn execrole)
+                              {:ZipFile (byte-streams/to-byte-array (java.io.File. "package.zip"))})]))
 
