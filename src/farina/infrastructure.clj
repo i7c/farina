@@ -81,6 +81,14 @@
       (= code "NoSuchEntity") (create-role rolename path policy)
       :else (throw (IllegalStateException. message)))))
 
+(defn attach-role-policy [rolename policy]
+  (let [response (aws/invoke iam {:op :AttachRolePolicy
+                                  :request {:RoleName rolename
+                                            :PolicyArn policy}})
+        code (get-in response [:ErrorResponse :Error :Code])
+        message (get-in response [:ErrorResponse :Error :Message])]
+    (if (some? code) (throw (IllegalStateException. message)))))
+
 
 (defn setup-infrastructure [basename]
   (let [bucketname basename
@@ -100,5 +108,8 @@
                     :Statement [{:Effect "Allow"
                                  :Principal {:Service ["lambda.amazonaws.com"]}
                                  :Action "sts:AssumeRole"
-                                 }]})]))
+                                 }]})
+        rpolicies (doall (map
+                           (partial attach-role-policy (:RoleName execrole))
+                           ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))]))
 
