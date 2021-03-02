@@ -57,6 +57,31 @@
       (nil? code) (:PutUserPolicyResponse response)
       :else (throw (IllegalStateException. message)))))
 
+(defn create-role [rolename path policy]
+  (let [response (aws/invoke iam {:op :CreateRole
+                                  :request {:RoleName rolename
+                                            :Path path
+                                            :AssumeRolePolicyDocument (json/write-str policy
+                                                                                      :escape-slash false)}})
+        role (:Role response)
+        code (get-in response [:ErrorResponse :Error :Code])
+        message (get-in response [:ErrorResponse :Error :Message])]
+    (cond
+      (nil? code) role
+      :else (throw (IllegalStateException. message)))))
+
+(defn get-or-create-role [rolename path policy]
+  (let [response (aws/invoke iam {:op :GetRole
+                                  :request {:RoleName rolename}})
+        role (:Role response)
+        code (get-in response [:ErrorResponse :Error :Code])
+        message (get-in response [:ErrorResponse :Error :Message])]
+    (cond
+      (nil? code) role
+      (= code "NoSuchEntity") (create-role rolename path policy)
+      :else (throw (IllegalStateException. message)))))
+
+
 (defn setup-infrastructure [basename]
   (let [bucketname basename
         principal (get-or-create-aws-user basename (str "/" basename "/"))
@@ -67,5 +92,13 @@
                    {:Version "2012-10-17"
                     :Statement [{:Effect "Allow"
                                  :Action "*"
-                                 :Resource (str "arn:aws:s3:::" bucketname "/*")}]})]))
+                                 :Resource (str "arn:aws:s3:::" bucketname "/*")}]})
+        execrole (get-or-create-role
+                   basename
+                   (str "/" basename "/")
+                   {:Version "2012-10-17"
+                    :Statement [{:Effect "Allow"
+                                 :Principal {:Service ["lambda.amazonaws.com"]}
+                                 :Action "sts:AssumeRole"
+                                 }]})]))
 
