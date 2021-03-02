@@ -3,4 +3,5 @@
   (:gen-class))
 
 (defn -main [& args]
-  (infra/setup-infrastructure "farina"))
+  (cond
+    (= (first args) "provision") (infra/setup-infrastructure "farina")))
