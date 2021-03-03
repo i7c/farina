@@ -91,12 +91,12 @@
         message (get-in response [:ErrorResponse :Error :Message])]
     (if (some? code) (throw (IllegalStateException. message)))))
 
-(defn create-lambda [fname role code]
+(defn create-lambda [fname role handler code]
   (let [response (aws/invoke lambda {:op :CreateFunction
                                      :request {:FunctionName fname
                                                :Role role
                                                :Runtime "java11"
-                                               :Handler "farina.core::handler"
+                                               :Handler handler
                                                :MemorySize 1024
                                                :Code code}})]
     (println response)))
@@ -125,5 +125,6 @@
                            ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
         downloader (create-lambda (str basename "-downloader")
                               (:Arn execrole)
+                              "farina.core::handler"
                               {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})]))
 
