@@ -99,13 +99,22 @@
                                                :Runtime "java11"
                                                :Handler handler
                                                :MemorySize 1024
-                                               :Code code}})
+                                               :Code {:ZipFile code}}})
         message (:message response)]
     (cond
       (some? message) (throw (IllegalStateException. message))
       :else response)))
 
-(defn get-or-create-lambda [fname role handler code]
+(defn update-lambda-code [fname code]
+  (let [response (aws/invoke lambda {:op :UpdateFunctionCode
+                                     :request {:FunctionName fname
+                                               :ZipFile code}})
+        message (:message response)]
+    (cond
+      (some? message) (throw (IllegalStateException. message))
+      :else response)))
+
+(defn get-update-or-create-lambda [fname role handler code]
   (let [response (aws/invoke lambda {:op :GetFunction
                                      :request {:FunctionName fname}})
         message (:Message response)]
@@ -114,7 +123,7 @@
         (some? message)
         (s/starts-with? message "Function not found: ")) (create-lambda fname role handler code)
       (some? message) (throw (IllegalStateException. message))
-      :else response)))
+      :else (update-lambda-code fname code))))
 
 (defn setup-infrastructure [basename jarpath]
   (let [bucketname basename
@@ -138,8 +147,8 @@
         rpolicies (doall (map
                            (partial attach-role-policy (:RoleName execrole))
                            ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
-        downloader (get-or-create-lambda (str basename "-downloader")
+        downloader (get-update-or-create-lambda (str basename "-downloader")
                               (:Arn execrole)
                               "farina.core::handler"
-                              {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})]))
+                              (byte-streams/to-byte-array (java.io.File. jarpath)))]))
 
