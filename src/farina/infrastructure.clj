@@ -1,5 +1,6 @@
 (ns farina.infrastructure
   (:require [clj-http.client :as client]
+            [clojure.string :as s]
             [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
             [cognitect.aws.credentials :as credentials]
@@ -98,8 +99,22 @@
                                                :Runtime "java11"
                                                :Handler handler
                                                :MemorySize 1024
-                                               :Code code}})]
-    (println response)))
+                                               :Code code}})
+        message (:message response)]
+    (cond
+      (some? message) (throw (IllegalStateException. message))
+      :else response)))
+
+(defn get-or-create-lambda [fname role handler code]
+  (let [response (aws/invoke lambda {:op :GetFunction
+                                     :request {:FunctionName fname}})
+        message (:Message response)]
+    (cond
+      (and
+        (some? message)
+        (s/starts-with? message "Function not found: ")) (create-lambda fname role handler code)
+      (some? message) (throw (IllegalStateException. message))
+      :else response)))
 
 (defn setup-infrastructure [basename jarpath]
   (let [bucketname basename
@@ -123,7 +138,7 @@
         rpolicies (doall (map
                            (partial attach-role-policy (:RoleName execrole))
                            ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
-        downloader (create-lambda (str basename "-downloader")
+        downloader (get-or-create-lambda (str basename "-downloader")
                               (:Arn execrole)
                               "farina.core::handler"
                               {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})]))
