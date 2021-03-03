@@ -101,7 +101,7 @@
                                                :Code code}})]
     (println response)))
 
-(defn setup-infrastructure [basename]
+(defn setup-infrastructure [basename jarpath]
   (let [bucketname basename
         principal (get-or-create-aws-user basename (str "/" basename "/"))
         bucket (get-or-create-s3-bucket bucketname)
@@ -125,5 +125,5 @@
                            ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
         downloader (create-lambda (str basename "-downloader")
                               (:Arn execrole)
-                              {:ZipFile (byte-streams/to-byte-array (java.io.File. "package.zip"))})]))
+                              {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})]))
 
