@@ -141,8 +141,11 @@
                    {:Version "2012-10-17"
                     :Statement [{:Effect "Allow"
                                  :Principal {:Service ["lambda.amazonaws.com"]}
-                                 :Action "sts:AssumeRole"
-                                 }]})
+                                 :Action "sts:AssumeRole"}
+                                {:Effect "Allow"
+                                 :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+                                 :Resource [(str "arn:aws:s3:::" bucketname "/*")]}
+                                ]})
         rpolicies (doall (map
                            (partial attach-role-policy (:RoleName execrole))
                            ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
