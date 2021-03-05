@@ -3,7 +3,6 @@
             [clojure.string :as s]
             [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
-            [cognitect.aws.credentials :as credentials]
             [byte-streams]))
 
 (def region "eu-central-1")
