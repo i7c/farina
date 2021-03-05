@@ -150,7 +150,7 @@
                            (partial attach-role-policy (:RoleName execrole))
                            ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
         downloader (get-update-or-create-lambda (str basename "-downloader")
-                              (:Arn execrole)
-                              "farina.core::handler"
-                              (byte-streams/to-byte-array (java.io.File. jarpath)))]))
+                                                (:Arn execrole)
+                                                "farina.core::download"
+                                                (byte-streams/to-byte-array (java.io.File. jarpath)))]))
 
