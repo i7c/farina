@@ -22,7 +22,10 @@
       (and (= op :GetUser) (= code "NoSuchEntity")) (aws-user-crud username path :CreateUser)
       :else (throw (IllegalStateException. message)))))
 
-(defn get-or-create-aws-user [username path]
+(defn
+  get-or-create-aws-user
+  "Retrieves a user anyways, i.e. creates it first when it does not exist yet."
+  [username path]
   (aws-user-crud username path :GetUser))
 
 (defn s3-bucket-crud [bucketname op]
@@ -40,7 +43,10 @@
         (= op :GetBucketLocation)) (s3-bucket-crud bucketname :CreateBucket)
       :else (throw (IllegalStateException. Message)))))
 
-(defn get-or-create-s3-bucket [bucketname]
+(defn
+  get-or-create-s3-bucket
+  "Gets a bucket's location as URL anyway, i.e. creates it if it doesn't exist yet."
+  [bucketname]
   (s3-bucket-crud bucketname :GetBucketLocation))
 
 (defn put-user-policy [username policyname policy]
