@@ -116,8 +116,11 @@
 
 (defn setup-infrastructure [basename jarpath]
   (let [bucketname basename
+
         principal (get-or-create-aws-user basename (str "/" basename "/"))
+
         bucket (get-or-create-s3-bucket bucketname)
+
         execrole (get-or-create-role
                    basename
                    (str "/" basename "/")
@@ -125,15 +128,17 @@
                     :Statement [{:Effect "Allow"
                                  :Principal {:Service ["lambda.amazonaws.com"]}
                                  :Action "sts:AssumeRole"}
+
                                 {:Effect "Allow"
                                  :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
                                  :Resource [(str "arn:aws:s3:::" bucketname "/*")]}
                                 ]})
-        rpolicies (doall (map
-                           (partial attach-role-policy (:RoleName execrole))
-                           ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]))
+        rp (attach-role-policy (:RoleName execrole) "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
+
         downloader (get-update-or-create-lambda (str basename "-downloader")
                                                 (:Arn execrole)
                                                 "farina.core::download"
-                                                (byte-streams/to-byte-array (java.io.File. jarpath)))]))
+                                                (byte-streams/to-byte-array (java.io.File. jarpath)))]
+
+    (println principal bucket execrole rp downloader)))
 
