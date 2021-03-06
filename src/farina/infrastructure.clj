@@ -49,8 +49,8 @@
   [bucketname]
   (s3-bucket-crud bucketname :GetBucketLocation))
 
-(defn create-role [rolename path policy]
-  (let [response (aws/invoke iam {:op :CreateRole
+(defn role-crud [rolename path policy op]
+  (let [response (aws/invoke iam {:op op
                                   :request {:RoleName rolename
                                             :Path path
                                             :AssumeRolePolicyDocument (json/write-str policy
@@ -60,20 +60,19 @@
         message (get-in response [:ErrorResponse :Error :Message])]
     (cond
       (nil? code) role
+      (= code "NoSuchEntity") (role-crud rolename path policy :CreateRole)
       :else (throw (IllegalStateException. message)))))
 
-(defn get-or-create-role [rolename path policy]
-  (let [response (aws/invoke iam {:op :GetRole
-                                  :request {:RoleName rolename}})
-        role (:Role response)
-        code (get-in response [:ErrorResponse :Error :Code])
-        message (get-in response [:ErrorResponse :Error :Message])]
-    (cond
-      (nil? code) role
-      (= code "NoSuchEntity") (create-role rolename path policy)
-      :else (throw (IllegalStateException. message)))))
+(defn
+  get-or-create-role
+  "Gets a role anyways, i.e. creating it if it does not exist yet."
+  [rolename path policy]
+  (role-crud rolename path policy :GetRole))
 
-(defn attach-role-policy [rolename policy]
+(defn
+  attach-role-policy
+  "Attach a policy to an existing role."
+  [rolename policy]
   (let [response (aws/invoke iam {:op :AttachRolePolicy
                                   :request {:RoleName rolename
                                             :PolicyArn policy}})
