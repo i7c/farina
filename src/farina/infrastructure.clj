@@ -48,6 +48,16 @@
   [bucketname]
   (s3-bucket-crud bucketname :GetBucketLocation))
 
+(defn
+  enable-bucket-versioning
+  "Enable bucket versioning"
+  [bucketname]
+  (let [response (aws/invoke s3 {:op :PutBucketVersioning
+                                 :request {:Bucket bucketname
+                                           :VersioningConfiguration {:Status "Enabled"}}})
+        error (get response :cognitect.anomalies/category)]
+    (if (some? error) (throw (IllegalStateException. "Could not enable S3 versioning")))))
+
 (defn role-crud [rolename path policy op]
   (let [response (aws/invoke iam {:op op
                                   :request {:RoleName rolename
@@ -119,6 +129,7 @@
         principal (get-or-create-aws-user basename (str "/" basename "/"))
 
         bucket (get-or-create-s3-bucket bucketname)
+        _ (enable-bucket-versioning bucketname)
 
         execrole (get-or-create-role
                    basename
