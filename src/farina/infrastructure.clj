@@ -25,8 +25,8 @@
 (defn get-or-create-aws-user [username path]
   (aws-user-crud username path :GetUser))
 
-(defn create-s3-bucket [bucketname]
-  (let [response (aws/invoke s3 {:op :CreateBucket
+(defn s3-bucket-crud [bucketname op]
+  (let [response (aws/invoke s3 {:op op
                                  :request {:Bucket bucketname
                                            :CreateBucketConfiguration {:LocationConstraint region}}})
         {{:keys [Code Message]} :Error
@@ -43,7 +43,7 @@
       (nil? Code) (str "http://" bucketname ".s3.amazonaws.com/")
       (= Code "AccessDenied") (throw (IllegalStateException.
                                        (str "Bucket is owned by someone else: " Message)))
-      (= Code "NoSuchBucket") (create-s3-bucket bucketname)
+      (= Code "NoSuchBucket") (s3-bucket-crud bucketname :CreateBucket)
       :else (throw (IllegalStateException. Message)))))
 
 (defn put-user-policy [username policyname policy]
