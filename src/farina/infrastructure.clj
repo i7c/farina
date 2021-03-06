@@ -49,19 +49,6 @@
   [bucketname]
   (s3-bucket-crud bucketname :GetBucketLocation))
 
-(defn put-user-policy [username policyname policy]
-  (let [response (aws/invoke iam {:op :PutUserPolicy
-                                  :request {:UserName username
-                                            :PolicyName policyname
-                                            :PolicyDocument (json/write-str
-                                                              policy
-                                                              :escape-slash false)}})
-        code (get-in response [:ErrorResponse :Error :Code])
-        message (get-in response [:ErrorResponse :Error :Message])]
-    (cond
-      (nil? code) (:PutUserPolicyResponse response)
-      :else (throw (IllegalStateException. message)))))
-
 (defn create-role [rolename path policy]
   (let [response (aws/invoke iam {:op :CreateRole
                                   :request {:RoleName rolename
@@ -132,13 +119,6 @@
   (let [bucketname basename
         principal (get-or-create-aws-user basename (str "/" basename "/"))
         bucket (get-or-create-s3-bucket bucketname)
-        s3policy (put-user-policy
-                   (:UserName principal)
-                   "farina-s3"
-                   {:Version "2012-10-17"
-                    :Statement [{:Effect "Allow"
-                                 :Action "*"
-                                 :Resource (str "arn:aws:s3:::" bucketname "/*")}]})
         execrole (get-or-create-role
                    basename
                    (str "/" basename "/")
