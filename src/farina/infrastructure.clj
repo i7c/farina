@@ -9,6 +9,7 @@
 (def iam (aws/client {:api :iam :region region}))
 (def s3 (aws/client {:api :s3 :region region}))
 (def lambda (aws/client {:api :lambda :region region}))
+(def eb (aws/client {:api :eventbridge :region region}))
 
 (defn aws-user-crud [username path op]
   (let [response (aws/invoke iam {:op op
@@ -123,6 +124,17 @@
       (some? message) (throw (IllegalStateException. message))
       :else (update-lambda-code fname code))))
 
+(defn create-eventbridge-rule [rulename schedule desc rolearn]
+  (let [response (aws/invoke eb {:op :PutRule
+                                 :request {:Name rulename
+                                           :ScheduleExpression schedule
+                                           :State "ENABLED"
+                                           :Description desc
+                                           :Role rolearn}})
+        error (get response :cognitect.anomalies/category)]
+    (if (some? error) (throw (IllegalStateException. "Could not create EventBridge rule")))
+    response))
+
 (defn setup-infrastructure [basename jarpath]
   (let [bucketname basename
 
@@ -148,7 +160,13 @@
         downloader (get-update-or-create-lambda (str basename "-downloader")
                                                 (:Arn execrole)
                                                 "farina.core::download"
-                                                (byte-streams/to-byte-array (java.io.File. jarpath)))]
+                                                (byte-streams/to-byte-array (java.io.File. jarpath)))
 
-    (println principal bucket execrole rp downloader)))
+        download-scheduled-rule (create-eventbridge-rule
+                                  "farina-download-rule"
+                                  "rate(5 minutes)"
+                                  "Schedules the farina downloader every 5 minutes"
+                                  (:Arn execrole))]
+
+    (println principal bucket execrole rp downloader download-scheduled-rule)))
 

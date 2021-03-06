@@ -10,6 +10,7 @@
                  [com.cognitect.aws/iam "811.2.844.0"]
                  [com.cognitect.aws/s3 "810.2.817.0"]
                  [com.cognitect.aws/lambda "811.2.844.0"]
+                 [com.cognitect.aws/eventbridge "809.2.797.0"]
                  [byte-streams "0.2.4"]
                  [clj-http "3.12.0"]]
   :main ^:skip-aot farina.core
