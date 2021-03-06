@@ -60,11 +60,14 @@
     (if (some? error) (throw (IllegalStateException. "Could not enable S3 versioning")))))
 
 (defn role-crud [rolename path policy op]
-  (let [response (aws/invoke iam {:op op
-                                  :request {:RoleName rolename
-                                            :Path path
-                                            :AssumeRolePolicyDocument (json/write-str policy
-                                                                                      :escape-slash false)}})
+  (let [request (cond
+                  (= op :CreateRole) {:RoleName rolename
+                                      :Path path
+                                      :AssumeRolePolicyDocument (json/write-str
+                                                                  policy
+                                                                  :escape-slash false)}
+                  (= op :GetRole) {:RoleName rolename})
+        response (aws/invoke iam {:op op :request request})
         role (:Role response)
         code (get-in response [:ErrorResponse :Error :Code])
         message (get-in response [:ErrorResponse :Error :Message])]
@@ -149,12 +152,8 @@
                    {:Version "2012-10-17"
                     :Statement [{:Effect "Allow"
                                  :Principal {:Service ["lambda.amazonaws.com"]}
-                                 :Action "sts:AssumeRole"}
+                                 :Action "sts:AssumeRole"}]})
 
-                                {:Effect "Allow"
-                                 :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
-                                 :Resource [(str "arn:aws:s3:::" bucketname "/*")]}
-                                ]})
         rp (attach-role-policy (:RoleName execrole) "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
 
         downloader (get-update-or-create-lambda (str basename "-downloader")
