@@ -143,6 +143,17 @@
       (some? message) (throw (IllegalStateException. message))
       :else (update-lambda-code fname code))))
 
+(defn add-lambda-permission [statement fname action principal source-arn]
+  (let [response (aws/invoke lambda {:op :AddPermission
+                                     :request {:FunctionName fname
+                                               :Action action
+                                               :Principal principal
+                                               :SourceArn source-arn
+                                               :StatementId statement}})
+        error (get response :cognitect.anomalies/category)]
+    (if (some? error) (println (str response)))
+    response))
+
 (defn create-eventbridge-rule [rulename schedule desc rolearn]
   (let [response (aws/invoke eb {:op :PutRule
                                  :request {:Name rulename
@@ -154,8 +165,20 @@
     (if (some? error) (throw (IllegalStateException. "Could not create EventBridge rule")))
     response))
 
+(defn put-eventbridge-rule-targets [rule targets]
+  (let [response (aws/invoke eb {:op :PutTargets
+                                 :request {:Rule rule
+                                           :Targets targets}})
+        failed-count (get response :FailedEntryCount)
+        failed-entries (get response :FailedEntries)]
+    (cond
+      (some? failed-count) (if (> failed-count 0)
+                             (throw (IllegalStateException. (str failed-entries))))
+      :else response)))
+
 (defn setup-infrastructure [basename jarpath]
   (let [bucketname basename
+        download-scheduled-rule-name "farina-download-rule"
 
         principal (get-or-create-aws-user basename (str "/" basename "/"))
 
@@ -185,10 +208,32 @@
                                                 (byte-streams/to-byte-array (java.io.File. jarpath)))
 
         download-scheduled-rule (create-eventbridge-rule
-                                  "farina-download-rule"
+                                  download-scheduled-rule-name
                                   "rate(5 minutes)"
                                   "Schedules the farina downloader every 5 minutes"
-                                  (:Arn execrole))]
+                                  (:Arn execrole))
+        lambda-event-permission (add-lambda-permission
+                                  "eventbridge-can-invoke"
+                                  (:FunctionName downloader)
+                                  "lambda:InvokeFunction"
+                                  "events.amazonaws.com"
+                                  (:RuleArn download-scheduled-rule))
 
-    (println principal bucket execrole rp downloader download-scheduled-rule)))
+        download-rule-targets (put-eventbridge-rule-targets
+                                download-scheduled-rule-name
+                                [{:Id "farina-downloader"
+                                  :Arn (:FunctionArn downloader)}])
 
+        ]
+
+
+
+    (println
+      principal
+      bucket
+      execrole
+      rp
+      downloader
+      download-scheduled-rule
+      lambda-event-permission
+      download-rule-targets)))
