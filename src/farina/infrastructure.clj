@@ -97,7 +97,8 @@
                                                :Role role
                                                :Runtime "java11"
                                                :Handler handler
-                                               :MemorySize 1024
+                                               :MemorySize 512
+                                               :Timeout 25
                                                :Code {:ZipFile code}}})
         message (:message response)]
     (cond
