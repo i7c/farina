@@ -93,6 +93,22 @@
         message (get-in response [:ErrorResponse :Error :Message])]
     (if (some? code) (throw (IllegalStateException. message)))))
 
+(defn
+  put-role-policy
+  "Create and attach an inline role policy"
+  [rolename policyname policy]
+  (let [response (aws/invoke iam {:op :PutRolePolicy
+                                  :request {:RoleName rolename
+                                            :PolicyName policyname
+                                            :PolicyDocument (json/write-str
+                                                                  policy
+                                                                  :escape-slash false)}})
+        code (get-in response [:ErrorResponse :Error :Code])
+        message (get-in response [:ErrorResponse :Error :Message])]
+    (cond
+      (nil? code) response
+      :else (throw (IllegalStateException. message)))))
+
 (defn create-lambda [fname role handler code]
   (let [response (aws/invoke lambda {:op :CreateFunction
                                      :request {:FunctionName fname
@@ -153,6 +169,13 @@
                     :Statement [{:Effect "Allow"
                                  :Principal {:Service ["lambda.amazonaws.com"]}
                                  :Action "sts:AssumeRole"}]})
+        _ (put-role-policy
+            (:RoleName execrole)
+            "farina-downloader-s3-access"
+            {:Version "2012-10-17"
+             :Statement [{:Effect "Allow"
+                          :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+                          :Resource [(str "arn:aws:s3:::" bucketname "/*")]}]})
 
         rp (attach-role-policy (:RoleName execrole) "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
 
