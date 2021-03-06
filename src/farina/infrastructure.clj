@@ -32,8 +32,7 @@
   (let [response (aws/invoke s3 {:op op
                                  :request {:Bucket bucketname
                                            :CreateBucketConfiguration {:LocationConstraint region}}})
-        {{:keys [Code Message]} :Error
-         :keys [Location]} response]
+        {{:keys [Code Message]} :Error} response]
     (cond
       (nil? Code) (str "http://" bucketname ".s3.amazonaws.com/")
       (= Code "AccessDenied") (throw (IllegalStateException.
