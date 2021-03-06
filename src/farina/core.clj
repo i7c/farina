@@ -19,8 +19,11 @@
         response (aws/invoke s3 {:op :PutObject
                                  :request {:Bucket "farina"
                                            :Key (str "raw/" date)
-                                           :Body (.getBytes (:body raw) "UTF-8")}})]
-    (:ETag response)))
+                                           :Body (.getBytes (:body raw) "UTF-8")}})
+        code (get-in response [:Error :Code])
+        message (get-in response [:Error :Message])]
+    (if (some? code) (throw (IllegalStateException. message)))
+    (json/write-str response)))
 
 (defn -main [& args]
   (cond
