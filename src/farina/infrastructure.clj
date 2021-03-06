@@ -32,19 +32,16 @@
         {{:keys [Code Message]} :Error
          :keys [Location]} response]
     (cond
-      (nil? Code) Location
-      :else (throw (IllegalStateException. Message)))))
-
-(defn get-or-create-s3-bucket [bucketname]
-  (let [response (aws/invoke s3 {:op :GetBucketLocation
-                                 :request {:Bucket bucketname}})
-        {{:keys [Code Message]} :Error} response]
-    (cond
       (nil? Code) (str "http://" bucketname ".s3.amazonaws.com/")
       (= Code "AccessDenied") (throw (IllegalStateException.
                                        (str "Bucket is owned by someone else: " Message)))
-      (= Code "NoSuchBucket") (s3-bucket-crud bucketname :CreateBucket)
+      (and
+        (= Code "NoSuchBucket")
+        (= op :GetBucketLocation)) (s3-bucket-crud bucketname :CreateBucket)
       :else (throw (IllegalStateException. Message)))))
+
+(defn get-or-create-s3-bucket [bucketname]
+  (s3-bucket-crud bucketname :GetBucketLocation))
 
 (defn put-user-policy [username policyname policy]
   (let [response (aws/invoke iam {:op :PutUserPolicy
