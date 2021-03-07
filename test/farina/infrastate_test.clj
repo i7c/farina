@@ -33,7 +33,6 @@
         result (spawn {} brood)
         [a b _] (diff result {:a 1001 :outcome :partial})]
 
-    (println a b result)
     (is (and (nil? a) (nil? b)))))
 
 (deftest spawn-functions-applied-in-reverse-order
