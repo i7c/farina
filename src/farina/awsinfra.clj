@@ -1,4 +1,4 @@
-(ns farina.infrastructure
+(ns farina.awsinfra
   (:require [clj-http.client :as client]
             [clojure.string :as s]
             [clojure.data.json :as json]

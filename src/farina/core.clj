@@ -1,5 +1,5 @@
 (ns farina.core
-  (:require [farina.infrastructure :as infra]
+  (:require [farina.awsinfra :as infra]
             [clojure.string :as s]
             [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
