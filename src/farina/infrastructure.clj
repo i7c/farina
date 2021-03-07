@@ -209,7 +209,7 @@
 
         download-scheduled-rule (create-eventbridge-rule
                                   download-scheduled-rule-name
-                                  "rate(5 minutes)"
+                                  "rate(15 minutes)"
                                   "Schedules the farina downloader every 5 minutes"
                                   (:Arn execrole))
         lambda-event-permission (add-lambda-permission
