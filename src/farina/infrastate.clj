@@ -17,11 +17,11 @@
 ;  :resource {}
 ;  :state :spawned}
 
-(defn spawner [sname inputs deps breeder]
+(defn resource [rname inputs deps breeder]
   (fn [state] state
-    (let [resource (sname state)]
+    (let [resource (rname state)]
 
-      (assoc state sname
+      (assoc state rname
              (if (= (:state resource) :spawned)
 
                ; (= :state :spawned)

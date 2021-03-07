@@ -45,12 +45,12 @@
     (is (nil? a))
     (is (nil? b))))
 
-(deftest spawner-checks-deps-and-resolves
+(deftest resource-checks-deps-and-resolves
   (let [brood (-> '()
                   (conj (fn [state] (if (> (:a state) 5)
                                       (assoc state :b {:x "Hello" :y 42})
                                       (assoc state :a (inc (:a state))))))
-                  (conj (spawner :c
+                  (conj (resource :c
                                  ["foo"]
                                  [:b]
                                  (fn [deps i1]
@@ -68,9 +68,9 @@
     (is (nil? a))
     (is (nil? b))))
 
-(deftest spawner-marks-unresolved-deps
+(deftest resource-marks-unresolved-deps
   (let [brood (-> '()
-                  (conj (spawner :a [] [:b] (fn [deps] {:x (:b deps)}))))
+                  (conj (resource :a [] [:b] (fn [deps] {:x (:b deps)}))))
         result (spawn {} brood)
         [a b _] (diff result {:outcome :complete
                               :a {:state :unresolved-deps
@@ -81,8 +81,8 @@
 
 (deftest unresolved-dependencies-resolve-on-retry
   (let [brood (-> '()
-                  (conj (spawner :a [] [:b] (fn [deps] {:other (get-in deps [:b :resource])})))
-                  (conj (spawner :b [] [] (fn [deps] {:x 1 :y 2}))))
+                  (conj (resource :a [] [:b] (fn [deps] {:other (get-in deps [:b :resource])})))
+                  (conj (resource :b [] [] (fn [deps] {:x 1 :y 2}))))
         state {:outcome :complete
                :a {:state :unresolved-deps
                    :inputs []
