@@ -35,7 +35,7 @@
                    resource))
 
                ; (not= state :spawned)
-               (let [resolved-deps (apply assoc {} (mapcat #(list % (% state)) deps))
+               (let [resolved-deps (into {} (map #(do [% (% state)]) deps))
                      deps-ready (every? some? (vals resolved-deps))]
                  (if deps-ready
                    {:resource (apply breeder resolved-deps inputs)

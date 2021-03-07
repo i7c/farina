@@ -78,3 +78,22 @@
                                   :resource nil}})]
     (is (nil? a))
     (is (nil? b))))
+
+(deftest unresolved-dependencies-resolve-on-retry
+  (let [brood (-> '()
+                  (conj (spawner :a [] [:b] (fn [deps] {:other (get-in deps [:b :resource])})))
+                  (conj (spawner :b [] [] (fn [deps] {:x 1 :y 2}))))
+        state {:outcome :complete
+               :a {:state :unresolved-deps
+                   :inputs []
+                   :resource nil}}
+        result (spawn state brood)
+        [a b _] (diff result {:outcome :complete
+                              :a {:state :spawned
+                                  :inputs []
+                                  :resource {:other {:x 1 :y 2}}}
+                              :b {:state :spawned
+                                  :inputs []
+                                  :resource {:x 1 :y 2}}})]
+    (is (nil? a))
+    (is (nil? b))))
