@@ -67,3 +67,14 @@
                                   :resource {:z "foo" :x "Hello" :y 42}}})]
     (is (nil? a))
     (is (nil? b))))
+
+(deftest spawner-marks-unresolved-deps
+  (let [brood (-> '()
+                  (conj (spawner :a [] [:b] (fn [deps] {:x (:b deps)}))))
+        result (spawn {} brood)
+        [a b _] (diff result {:outcome :complete
+                              :a {:state :unresolved-deps
+                                  :inputs []
+                                  :resource nil}})]
+    (is (nil? a))
+    (is (nil? b))))

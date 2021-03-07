@@ -42,5 +42,6 @@
                     :inputs inputs
                     :state :spawned}
                    ;else
-                   {:inputs inputs
+                   {:resource nil
+                    :inputs inputs
                     :state :unresolved-deps})))))))
