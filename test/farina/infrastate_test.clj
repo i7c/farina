@@ -97,3 +97,18 @@
                                   :resource {:x 1 :y 2}}})]
     (is (nil? a))
     (is (nil? b))))
+
+(deftest input-change-leads-to-stable-resource-state
+  (let [brood (list (resource :a ["foo"] [] (fn [deps i1] {:x i1})))
+        state {:outcome :complete
+               :a {:state :spawned
+                   :inputs ["bar"]
+                   :resource {:x "bar"}}}
+
+        result (spawn state brood)
+        [a b _] (diff result {:outcome :complete
+                              :a {:state :needs-update
+                                  :inputs ["bar"]
+                                  :resource {:x "bar"}}})]
+    (is (nil? a))
+    (is (nil? b))))
