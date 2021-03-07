@@ -2,7 +2,7 @@
   (:require [clojure.data :refer [diff]]))
 
 (defn spawn [initial-state brood]
-  (let [everything (apply comp (reverse brood))]
+  (let [everything (apply comp brood)]
     (loop [state initial-state
            iter-remaining 1000]
       (let [new-state (everything state)

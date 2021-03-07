@@ -10,19 +10,19 @@
     (is (and (nil? a) (nil? b)))))
 
 (deftest state-accumulates
-  (let [brood [(fn [state] (assoc state :a 10))
-               (fn [state] (assoc state :b (+ (:a state) 5)))]
+  (let [brood [(fn [state] (assoc state :b (+ (:a state) 5)))
+               (fn [state] (assoc state :a 10))]
         result (spawn {} brood)
         [a b _] (diff result {:a 10 :b 15 :outcome :complete})]
 
     (is (and (nil? a) (nil? b)))))
 
 (deftest missing-dependencies-iterate-out
-  (let [brood [(fn [state]
+  (let [brood [(fn [state] (assoc state :b 10))
+               (fn [state]
                  (if-let [dep (:b state)]
                    (assoc state :a (* dep 2))
-                   state))
-               (fn [state] (assoc state :b 10))]
+                   state))]
         result (spawn {} brood)
         [a b _] (diff result {:a 20 :b 10 :outcome :complete})]
 
@@ -35,3 +35,13 @@
 
     (println a b result)
     (is (and (nil? a) (nil? b)))))
+
+(deftest spawn-functions-applied-in-reverse-order
+  (let [brood (-> '()
+                  (conj (fn [state] (assoc state :a (or (:a state) (inc (apply max (vals state)))))))
+                  (conj (fn [state] (assoc state :b (or (:b state) (inc (apply max (vals state)))))))
+                  (conj (fn [state] (assoc state :c (or (:c state) (inc (apply max (vals state))))))))
+        result (spawn {:z 1} brood)
+        [a b _] (diff result {:z 1 :a 2 :b 3 :c 4 :outcome :complete})]
+    (is (nil? a))
+    (is (nil? b))))
