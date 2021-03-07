@@ -45,3 +45,26 @@
         [a b _] (diff result {:z 1 :a 2 :b 3 :c 4 :outcome :complete})]
     (is (nil? a))
     (is (nil? b))))
+
+(deftest spawner-checks-deps-and-resolves
+  (let [brood (-> '()
+                  (conj (fn [state] (if (> (:a state) 5)
+                                      (assoc state :b {:x "Hello" :y 42})
+                                      (assoc state :a (inc (:a state))))))
+                  (conj (spawner :c
+                                 ["foo"]
+                                 [:b]
+                                 (fn [deps i1]
+                                   {:z i1
+                                                :x (get-in deps [:b :x])
+                                                :y (get-in deps [:b :y])}))))
+
+        result (spawn {:a 1} brood)
+        [a b _] (diff result {:outcome :complete
+                              :a 6
+                              :b {:x "Hello" :y 42}
+                              :c {:state :spawned
+                                  :inputs ["foo"]
+                                  :resource {:z "foo" :x "Hello" :y 42}}})]
+    (is (nil? a))
+    (is (nil? b))))
