@@ -12,45 +12,43 @@
           (<= iter-remaining 0) (assoc new-state :outcome :partial)
           :else (recur new-state (dec iter-remaining)))))))
 
+(defn resolve-inputs [deps ispec]
+  (into {}
+        (map #(if (fn? (% ispec))
+                [% ((% ispec) deps ispec)]
+                [% (% ispec)])
+             (keys ispec))))
+
 ; Suggested resource structure
 ; {:inputs []
 ;  :resource {}
 ;  :state :spawned}
 
-(defn resource [rname inputs deps breeder]
-  (fn [state] state
-    (let [resource (rname state)
-          rstate (:state resource)
-          [current should _] (diff (:inputs resource) inputs)]
+(defn resource [rname ispec dspec breeder]
+  (fn [state]
+    (assoc
+      state
+      rname
+      (let [resource (rname state)
+            rstate (:state resource)
+            deps (into {} (map #(do [% (% state)]) dspec))]
+        ; if deps are missing, just set resource state and stop
+        (if (not-every? some? (vals deps))
+          (assoc resource :state :unresolved-deps)
+          (let [inputs (resolve-inputs deps ispec)
+                [went came _] (diff (:inputs resource) inputs)]
+            (cond
+              (= rstate :spawned)
+              (if (not-every? nil? [went came])
+                (assoc resource :state :needs-update)
+                resource)
 
-      (assoc
-        state
-        rname
-        (cond
-          ; resource already exists
-          (= rstate :spawned)
-          (if (not-every? nil? [current should])
-            ; input changes happened
-            {:inputs (:inputs resource)
-             :resource (:resource resource)
-             :state :needs-update}
-            ; input and existing are identical
-            resource)
-          ; resource is in "needs update" state
-          (= rstate :needs-update)
-          (do
-            (println "WARN:" rname "needs update, but we don't handle that")
-            resource)
-          ; resource is in any other state
-          :else
-          (let [resolved-deps (into {} (map #(do [% (% state)]) deps))
-                deps-ready (every? some? (vals resolved-deps))]
-            (if deps-ready
-              ; deps are resolved, so run the breeder
-              {:resource (apply breeder resolved-deps inputs)
+              (= rstate :needs-update)
+              (do
+                (println "WARN:" rname "needs update, but we don't handle that")
+                resource)
+
+              (nil? resource)
+              {:resource (breeder deps inputs)
                :inputs inputs
-               :state :spawned}
-              ; else
-              {:resource nil
-               :inputs inputs
-               :state :unresolved-deps})))))))
+               :state :spawned})))))))

@@ -51,64 +51,107 @@
                                       (assoc state :b {:x "Hello" :y 42})
                                       (assoc state :a (inc (:a state))))))
                   (conj (resource :c
-                                 ["foo"]
-                                 [:b]
-                                 (fn [deps i1]
-                                   {:z i1
-                                                :x (get-in deps [:b :x])
-                                                :y (get-in deps [:b :y])}))))
+                                  {:i1 "foo"}
+                                  [:b]
+                                  (fn [deps ins]
+                                    {:z (ins :i1)
+                                     :x (get-in deps [:b :x])
+                                     :y (get-in deps [:b :y])}))))
 
         result (spawn {:a 1} brood)
         [a b _] (diff result {:outcome :complete
                               :a 6
                               :b {:x "Hello" :y 42}
                               :c {:state :spawned
-                                  :inputs ["foo"]
+                                  :inputs {:i1 "foo"}
                                   :resource {:z "foo" :x "Hello" :y 42}}})]
     (is (nil? a))
     (is (nil? b))))
 
 (deftest resource-marks-unresolved-deps
   (let [brood (-> '()
-                  (conj (resource :a [] [:b] (fn [deps] {:x (:b deps)}))))
+                  (conj (resource :a {} [:b] (fn [deps ins] {:x (:b deps)}))))
         result (spawn {} brood)
         [a b _] (diff result {:outcome :complete
-                              :a {:state :unresolved-deps
-                                  :inputs []
-                                  :resource nil}})]
+                              :a {:state :unresolved-deps}})]
     (is (nil? a))
     (is (nil? b))))
 
 (deftest unresolved-dependencies-resolve-on-retry
   (let [brood (-> '()
-                  (conj (resource :a [] [:b] (fn [deps] {:other (get-in deps [:b :resource])})))
-                  (conj (resource :b [] [] (fn [deps] {:x 1 :y 2}))))
+                  (conj (resource :a {} [:b] (fn [d i] {:other (get-in d [:b :resource])})))
+                  (conj (resource :b {} [] (fn [d i] {:x 1 :y 2}))))
         state {:outcome :complete
                :a {:state :unresolved-deps
-                   :inputs []
+                   :inputs {}
                    :resource nil}}
         result (spawn state brood)
         [a b _] (diff result {:outcome :complete
                               :a {:state :spawned
-                                  :inputs []
+                                  :inputs {}
                                   :resource {:other {:x 1 :y 2}}}
                               :b {:state :spawned
-                                  :inputs []
+                                  :inputs {}
                                   :resource {:x 1 :y 2}}})]
     (is (nil? a))
     (is (nil? b))))
 
 (deftest input-change-leads-to-stable-resource-state
-  (let [brood (list (resource :a ["foo"] [] (fn [deps i1] {:x i1})))
+  (let [brood (list (resource :a {:i1 "foo"} [] (fn [deps ins] {:x (ins :i1)})))
         state {:outcome :complete
                :a {:state :spawned
-                   :inputs ["bar"]
+                   :inputs {:i1 "bar"}
                    :resource {:x "bar"}}}
 
         result (spawn state brood)
         [a b _] (diff result {:outcome :complete
                               :a {:state :needs-update
-                                  :inputs ["bar"]
+                                  :inputs {:i1 "bar"}
                                   :resource {:x "bar"}}})]
+    (is (nil? a))
+    (is (nil? b))))
+
+
+(deftest input-can-reference-dependencies
+  (let [brood (list
+                (resource :a {} [] (fn [deps ins] {:x 42}))
+                (resource :b
+                          {:i1 (fn [d i] (* 2 (get-in d [:a :resource :x])))}
+                          [:a]
+                          (fn [d i] {:x (i :i1)})))
+        result (spawn {} brood)
+        [a b _] (diff result {:outcome :complete
+                              :a {:state :spawned
+                                  :inputs {}
+                                  :resource {:x 42}}
+                              :b {:state :spawned
+                                  :inputs {:i1 84}
+                                  :resource {:x 84}}})]
+    (is (nil? a))
+    (is (nil? b))))
+
+(deftest input-resolver-never-called-when-dep-missing
+  (let [brood (list
+                (resource :a
+                          {:i1 (fn [d i] (throw (IllegalStateException. "!")))}
+                          [:b]
+                          (fn [d i] nil)))
+        result (spawn {} brood)
+        [a b _] (diff result {:outcome :complete
+                              :a {:state :unresolved-deps}})]
+    (is (nil? a))
+    (is (nil? b))))
+
+(deftest resolve-inputs-with-dependencies
+  (let [deps {:r1 {:state :spawned
+                    :inputs {}
+                    :resource {:x "foo"}}}
+        ispec {:a "bar"
+               :b 42
+               :c (fn [d i] (get-in d [:r1 :resource :x]))}
+        inputs (resolve-inputs deps ispec)
+        [a b _] (diff inputs {:a "bar"
+                              :b 42
+                              :c "foo"})]
     (is (nil? a))
     (is (nil? b))))

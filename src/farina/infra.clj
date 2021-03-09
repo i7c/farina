@@ -9,38 +9,37 @@
 (def infrastructure
   (list
         (resource :s3/rawdata
-                 [bucketname]
+                  {:bucketname bucketname}
                  []
-                 (fn [deps bucketname]
+                 (fn [d i]
                    (let [response (awsinfra/s3-bucket-crud bucketname :CreateBucket)]
                      (awsinfra/enable-bucket-versioning bucketname)
                      {:location response})))
 
         (resource :role/downloader
-                  [basename
-                   (str "/" basename "/")
-                   {:Version "2012-10-17"
-                    :Statement [{:Effect "Allow"
-                                 :Principal {:Service ["lambda.amazonaws.com"]}
-                                 :Action "sts:AssumeRole"}]}]
+                  {:rolename basename
+                   :path (str "/" basename "/")
+                   :policy {:Version "2012-10-17"
+                            :Statement [{:Effect "Allow"
+                                         :Principal {:Service ["lambda.amazonaws.com"]}
+                                         :Action "sts:AssumeRole"}]}}
                   []
-                  (fn [deps rolename path policy]
-                    (awsinfra/role-crud rolename path policy :CreateRole)))
+                  (fn [d i]
+                    (awsinfra/role-crud (:rolename i) (:path i) (:policy i) :CreateRole)))
 
         (resource :role-policy/downloader
-                  []
+                  {:rolename (fn [d i] (get-in d [:role/downloader :resource :RoleName]))
+                   :policyname "farina-downloader-s3-access"
+                   :policy (fn [d i]
+                             {:Version "2012-10-17"
+                              :Statement [{:Effect "Allow"
+                                           :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+                                           :Resource [(str
+                                                        "arn:aws:s3:::"
+                                                        (get-in d [:s3/rawdata :inputs :bucketname])
+                                                        "/*")]}]})}
                   [:role/downloader :s3/rawdata]
-                  (fn [deps]
-                    (awsinfra/put-role-policy
-                      (get-in deps [:role/downloader :resource :RoleName])
-                      "farina-downloader-s3-access"
-                      {:Version "2012-10-17"
-                       :Statement [{:Effect "Allow"
-                                    :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
-                                    :Resource [(str
-                                                 "arn:aws:s3:::"
-                                                 (get-in deps [:s3/rawdata :inputs 0])
-                                                 "/*")]}]})))
+                  (fn [d i] (awsinfra/put-role-policy (:rolename i) (:policyname i) (:policy i))))
         ))
 
 (defn provision []
