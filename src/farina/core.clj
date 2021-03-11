@@ -4,7 +4,8 @@
             [clojure.string :as s]
             [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
-            [clj-http.client :as client])
+            [clj-http.client :as client]
+            [clojure.pprint :refer [pprint]])
   (:gen-class
     :methods [^:static [download [] String]]))
 
@@ -26,7 +27,8 @@
 (defn -main [& args]
   (cond
     (and (= (count args) 2)
-         (= (first args) "provision")) (infra/setup-infrastructure "farina" (second args))
+         (= (first args) "provision")) (infra/provision (second args))
+    (= (first args) "state") (pprint (read-string (slurp "state.edn")))
     :else (println
             (str "Build an uberjar.\n"
                  "Run the jar like so: java -jar farina-standalone.jar provision ./farina-standalone.jar"))))

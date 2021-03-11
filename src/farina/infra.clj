@@ -6,7 +6,7 @@
 (def basename "farina")
 (def bucketname basename)
 
-(def infrastructure
+(defn infrastructure [jarpath]
   (list
         (resource :s3/rawdata
                   {:bucketname bucketname}
@@ -43,10 +43,54 @@
                     (awsinfra/attach-role-policy (:rolename i) "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
                     (awsinfra/put-role-policy (:rolename i) (:policyname i) (:policy i))))
 
+        (resource :lambda/downloader
+                  {:name (str basename "-downloader")
+                   :role #(get-in % [:role/downloader :resource :Arn])
+                   :handler "farina.core::download"}
+                  [:role/downloader]
+                  (fn [d i]
+                    (awsinfra/create-lambda (:name i) (:role i) (:handler i) (byte-streams/to-byte-array (java.io.File. jarpath)))))
+
+        (resource :eventbridgerule/downloader
+                  {:name (str basename "-downloader")
+                   :schedule "rate(15 minutes)"
+                   :description "Schedules the farina downloader for pulling raw data"
+                   :role #(get-in % [:role/downloader :resrouce :Arn])}
+                  [:role/downloader]
+                  (fn [d i]
+                    (awsinfra/create-eventbridge-rule
+                      (:name i)
+                      (:schedule i)
+                      (:description i)
+                      (:role i))))
+
+        (resource :lambdapermission/downloader
+                  {:statementid "eventbridge-can-invoke"
+                   :fname #(get-in % [:lambda/downloader :resource :FunctionName])
+                   :action "lambda:InvokeFunction"
+                   :principal "events.amazonaws.com"
+                   :source-arn #(get-in % [:eventbridgerule/downloader :resource :RuleArn])}
+                  [:lambda/downloader :eventbridgerule/downloader]
+                  (fn [d i]
+                    (awsinfra/add-lambda-permission
+                      (:statementid i)
+                      (:fname i)
+                      (:action i)
+                      (:principal i)
+                      (:source-arn i))))
+
+        (resource :eventbridgerule-target/downloader
+                  {:rule #(get-in % [:eventbridgerule/downloader :inputs :name]) ; TODO: replace this
+                   :targets #(do
+                               [{:Id "farina-downloader"
+                                :Arn (get-in % [:lambda/downloader :resource :FunctionArn])}])}
+                  [:eventbridgerule/downloader :lambda/downloader]
+                  (fn [d i]
+                    (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))
         ))
 
-(defn provision []
+(defn provision [jarpath]
   (let [before-state (read-string (slurp "state.edn"))
-        state (spawn before-state (reverse infrastructure))]
+        state (spawn before-state (reverse (infrastructure jarpath)))]
     (spit "state.edn" (pr-str state))
     (pprint state)))
