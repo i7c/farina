@@ -39,7 +39,10 @@
                                                         (get-in d [:s3/rawdata :inputs :bucketname])
                                                         "/*")]}]})}
                   [:role/downloader :s3/rawdata]
-                  (fn [d i] (awsinfra/put-role-policy (:rolename i) (:policyname i) (:policy i))))
+                  (fn [d i]
+                    (awsinfra/attach-role-policy (:rolename i) "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
+                    (awsinfra/put-role-policy (:rolename i) (:policyname i) (:policy i))))
+
         ))
 
 (defn provision []
