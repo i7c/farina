@@ -116,7 +116,7 @@
   (let [brood (list
                 (resource :a {} [] (fn [deps ins] {:x 42}))
                 (resource :b
-                          {:i1 (fn [d i] (* 2 (get-in d [:a :resource :x])))}
+                          {:i1 #(* 2 (get-in % [:a :resource :x]))}
                           [:a]
                           (fn [d i] {:x (i :i1)})))
         result (spawn {} brood)
@@ -133,7 +133,7 @@
 (deftest input-resolver-never-called-when-dep-missing
   (let [brood (list
                 (resource :a
-                          {:i1 (fn [d i] (throw (IllegalStateException. "!")))}
+                          {:i1 #(throw (IllegalStateException. "!"))}
                           [:b]
                           (fn [d i] nil)))
         result (spawn {} brood)
@@ -148,7 +148,7 @@
                     :resource {:x "foo"}}}
         ispec {:a "bar"
                :b 42
-               :c (fn [d i] (get-in d [:r1 :resource :x]))}
+               :c #(get-in % [:r1 :resource :x])}
         inputs (resolve-inputs deps ispec)
         [a b _] (diff inputs {:a "bar"
                               :b 42

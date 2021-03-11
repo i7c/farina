@@ -28,9 +28,9 @@
                     (awsinfra/role-crud (:rolename i) (:path i) (:policy i) :CreateRole)))
 
         (resource :role-policy/downloader
-                  {:rolename (fn [d i] (get-in d [:role/downloader :resource :RoleName]))
+                  {:rolename (fn [d] (get-in d [:role/downloader :resource :RoleName]))
                    :policyname "farina-downloader-s3-access"
-                   :policy (fn [d i]
+                   :policy (fn [d]
                              {:Version "2012-10-17"
                               :Statement [{:Effect "Allow"
                                            :Action ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]

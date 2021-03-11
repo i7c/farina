@@ -15,7 +15,7 @@
 (defn resolve-inputs [deps ispec]
   (into {}
         (map #(if (fn? (% ispec))
-                [% ((% ispec) deps ispec)]
+                [% ((% ispec) deps)]
                 [% (% ispec)])
              (keys ispec))))
 
