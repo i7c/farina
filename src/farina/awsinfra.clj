@@ -1,18 +1,13 @@
 (ns farina.awsinfra
-  (:require [clj-http.client :as client]
+  (:require [farina.awsclient :refer [region eb iam lambda s3]]
+            [clj-http.client :as client]
             [clojure.string :as s]
             [clojure.data.json :as json]
             [cognitect.aws.client.api :as aws]
             [byte-streams]))
 
-(def region "eu-central-1")
-(def iam (aws/client {:api :iam :region region}))
-(def s3 (aws/client {:api :s3 :region region}))
-(def lambda (aws/client {:api :lambda :region region}))
-(def eb (aws/client {:api :eventbridge :region region}))
-
 (defn aws-user-crud [username path op]
-  (let [response (aws/invoke iam {:op op
+  (let [response (aws/invoke @iam {:op op
                                   :request {:UserName username
                                             :Path path}})
         user (:User response)
@@ -30,7 +25,7 @@
   (aws-user-crud username path :GetUser))
 
 (defn s3-bucket-crud [bucketname op]
-  (let [response (aws/invoke s3 {:op op
+  (let [response (aws/invoke @s3 {:op op
                                  :request {:Bucket bucketname
                                            :CreateBucketConfiguration {:LocationConstraint region}}})
         {{:keys [Code Message]} :Error} response]
@@ -53,7 +48,7 @@
   enable-bucket-versioning
   "Enable bucket versioning"
   [bucketname]
-  (let [response (aws/invoke s3 {:op :PutBucketVersioning
+  (let [response (aws/invoke @s3 {:op :PutBucketVersioning
                                  :request {:Bucket bucketname
                                            :VersioningConfiguration {:Status "Enabled"}}})
         error (get response :cognitect.anomalies/category)]
@@ -67,7 +62,7 @@
                                                                   policy
                                                                   :escape-slash false)}
                   (= op :GetRole) {:RoleName rolename})
-        response (aws/invoke iam {:op op :request request})
+        response (aws/invoke @iam {:op op :request request})
         role (:Role response)
         code (get-in response [:ErrorResponse :Error :Code])
         message (get-in response [:ErrorResponse :Error :Message])]
@@ -86,7 +81,7 @@
   attach-role-policy
   "Attach a policy to an existing role."
   [rolename policy]
-  (let [response (aws/invoke iam {:op :AttachRolePolicy
+  (let [response (aws/invoke @iam {:op :AttachRolePolicy
                                   :request {:RoleName rolename
                                             :PolicyArn policy}})
         code (get-in response [:ErrorResponse :Error :Code])
@@ -97,7 +92,7 @@
   put-role-policy
   "Create and attach an inline role policy"
   [rolename policyname policy]
-  (let [response (aws/invoke iam {:op :PutRolePolicy
+  (let [response (aws/invoke @iam {:op :PutRolePolicy
                                   :request {:RoleName rolename
                                             :PolicyName policyname
                                             :PolicyDocument (json/write-str
@@ -110,7 +105,7 @@
       :else (throw (IllegalStateException. message)))))
 
 (defn create-lambda [fname role handler code]
-  (let [response (aws/invoke lambda {:op :CreateFunction
+  (let [response (aws/invoke @lambda {:op :CreateFunction
                                      :request {:FunctionName fname
                                                :Role role
                                                :Runtime "java11"
@@ -124,7 +119,7 @@
       :else response)))
 
 (defn update-lambda-code [fname code]
-  (let [response (aws/invoke lambda {:op :UpdateFunctionCode
+  (let [response (aws/invoke @lambda {:op :UpdateFunctionCode
                                      :request {:FunctionName fname
                                                :ZipFile code}})
         message (:message response)]
@@ -133,7 +128,7 @@
       :else response)))
 
 (defn get-update-or-create-lambda [fname role handler code]
-  (let [response (aws/invoke lambda {:op :GetFunction
+  (let [response (aws/invoke @lambda {:op :GetFunction
                                      :request {:FunctionName fname}})
         message (:Message response)]
     (cond
@@ -144,7 +139,7 @@
       :else (update-lambda-code fname code))))
 
 (defn add-lambda-permission [statement fname action principal source-arn]
-  (let [response (aws/invoke lambda {:op :AddPermission
+  (let [response (aws/invoke @lambda {:op :AddPermission
                                      :request {:FunctionName fname
                                                :Action action
                                                :Principal principal
@@ -155,7 +150,7 @@
     response))
 
 (defn create-eventbridge-rule [rulename schedule desc rolearn]
-  (let [response (aws/invoke eb {:op :PutRule
+  (let [response (aws/invoke @eb {:op :PutRule
                                  :request {:Name rulename
                                            :ScheduleExpression schedule
                                            :State "ENABLED"
@@ -166,7 +161,7 @@
     response))
 
 (defn put-eventbridge-rule-targets [rule targets]
-  (let [response (aws/invoke eb {:op :PutTargets
+  (let [response (aws/invoke @eb {:op :PutTargets
                                  :request {:Rule rule
                                            :Targets targets}})
         failed-count (get response :FailedEntryCount)
