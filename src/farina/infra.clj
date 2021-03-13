@@ -92,6 +92,16 @@
                   {:name basename}
                   []
                   (fn [d i] (awsinfra/create-ecs-cluster (:name i))))
+
+        (resource :ecs-task-definition/grafana
+                  {:containerdefs [{:image "grafana/grafana"
+                                    :name (str basename "-grafana")
+                                    :memory 1024}]
+                   :family (str basename "-grafana")}
+                  []
+                  (fn [d i]
+                    (awsinfra/create-ecs-task-definition (:family i) (:containerdefs i))))
+
         ))
 
 

@@ -137,3 +137,11 @@
         error (get response :cognitect.anomalies/category)]
     (cond (some? error) (throw (IllegalStateException. (str response)))
           :else response)))
+
+(defn create-ecs-task-definition [family containerdefs]
+  (let [response (aws/invoke @ecs {:op :RegisterTaskDefinition
+                                   :request {:family family
+                                             :containerDefinitions containerdefs}})
+        error (get response :cognitect.anomalies/category)]
+    (cond (some? error) (throw (IllegalStateException. (str response)))
+          :else response)))
