@@ -6,24 +6,6 @@
             [cognitect.aws.client.api :as aws]
             [byte-streams]))
 
-(defn aws-user-crud [username path op]
-  (let [response (aws/invoke @iam {:op op
-                                  :request {:UserName username
-                                            :Path path}})
-        user (:User response)
-        code (get-in response [:ErrorResponse :Error :Code])
-        message (get-in response [:ErrorResponse :Error :Message])]
-    (cond
-      (nil? code) user
-      (and (= op :GetUser) (= code "NoSuchEntity")) (aws-user-crud username path :CreateUser)
-      :else (throw (IllegalStateException. message)))))
-
-(defn
-  get-or-create-aws-user
-  "Retrieves a user anyways, i.e. creates it first when it does not exist yet."
-  [username path]
-  (aws-user-crud username path :GetUser))
-
 (defn s3-bucket-crud [bucketname op]
   (let [response (aws/invoke @s3 {:op op
                                  :request {:Bucket bucketname
@@ -37,12 +19,6 @@
         (= Code "NoSuchBucket")
         (= op :GetBucketLocation)) (s3-bucket-crud bucketname :CreateBucket)
       :else (throw (IllegalStateException. Message)))))
-
-(defn
-  get-or-create-s3-bucket
-  "Gets a bucket's location as URL anyway, i.e. creates it if it doesn't exist yet."
-  [bucketname]
-  (s3-bucket-crud bucketname :GetBucketLocation))
 
 (defn
   enable-bucket-versioning
@@ -70,12 +46,6 @@
       (nil? code) role
       (= code "NoSuchEntity") (role-crud rolename path policy :CreateRole)
       :else (throw (IllegalStateException. message)))))
-
-(defn
-  get-or-create-role
-  "Gets a role anyways, i.e. creating it if it does not exist yet."
-  [rolename path policy]
-  (role-crud rolename path policy :GetRole))
 
 (defn
   attach-role-policy
@@ -126,17 +96,6 @@
     (cond
       (some? message) (throw (IllegalStateException. message))
       :else response)))
-
-(defn get-update-or-create-lambda [fname role handler code]
-  (let [response (aws/invoke @lambda {:op :GetFunction
-                                     :request {:FunctionName fname}})
-        message (:Message response)]
-    (cond
-      (and
-        (some? message)
-        (s/starts-with? message "Function not found: ")) (create-lambda fname role handler code)
-      (some? message) (throw (IllegalStateException. message))
-      :else (update-lambda-code fname code))))
 
 (defn add-lambda-permission [statement fname action principal source-arn]
   (let [response (aws/invoke @lambda {:op :AddPermission
