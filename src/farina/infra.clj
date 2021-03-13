@@ -87,7 +87,13 @@
                   [:eventbridgerule/downloader :lambda/downloader]
                   (fn [d i]
                     (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))
+
+        (resource :ecs/cluster
+                  {:name basename}
+                  []
+                  (fn [d i] (awsinfra/create-ecs-cluster (:name i))))
         ))
+
 
 (defn provision [jarpath]
   (let [before-state (read-string (slurp "state.edn"))

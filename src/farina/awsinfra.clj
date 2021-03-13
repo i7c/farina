@@ -1,5 +1,5 @@
 (ns farina.awsinfra
-  (:require [farina.awsclient :refer [region eb iam lambda s3]]
+  (:require [farina.awsclient :refer [region eb iam lambda s3 ecs]]
             [clj-http.client :as client]
             [clojure.string :as s]
             [clojure.data.json :as json]
@@ -129,3 +129,11 @@
       (some? failed-count) (if (> failed-count 0)
                              (throw (IllegalStateException. (str failed-entries))))
       :else response)))
+
+(defn create-ecs-cluster [cname]
+  (let [response (aws/invoke @ecs {:op :CreateCluster
+                                   :request {:clusterName cname
+                                             :capacityProviders ["FARGATE"]}})
+        error (get response :cognitect.anomalies/category)]
+    (cond (some? error) (throw (IllegalStateException. (str response)))
+          :else response)))
