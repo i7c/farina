@@ -8,8 +8,8 @@
 
 (defn s3-bucket-crud [bucketname op]
   (let [response (aws/invoke @s3 {:op op
-                                 :request {:Bucket bucketname
-                                           :CreateBucketConfiguration {:LocationConstraint region}}})
+                                  :request {:Bucket bucketname
+                                            :CreateBucketConfiguration {:LocationConstraint region}}})
         {{:keys [Code Message]} :Error} response]
     (cond
       (nil? Code) (str "http://" bucketname ".s3.amazonaws.com/")
@@ -25,8 +25,8 @@
   "Enable bucket versioning"
   [bucketname]
   (let [response (aws/invoke @s3 {:op :PutBucketVersioning
-                                 :request {:Bucket bucketname
-                                           :VersioningConfiguration {:Status "Enabled"}}})
+                                  :request {:Bucket bucketname
+                                            :VersioningConfiguration {:Status "Enabled"}}})
         error (get response :cognitect.anomalies/category)]
     (if (some? error) (throw (IllegalStateException. "Could not enable S3 versioning")))))
 
@@ -52,8 +52,8 @@
   "Attach a policy to an existing role."
   [rolename policy]
   (let [response (aws/invoke @iam {:op :AttachRolePolicy
-                                  :request {:RoleName rolename
-                                            :PolicyArn policy}})
+                                   :request {:RoleName rolename
+                                             :PolicyArn policy}})
         code (get-in response [:ErrorResponse :Error :Code])
         message (get-in response [:ErrorResponse :Error :Message])]
     (if (some? code) (throw (IllegalStateException. message)))))
@@ -63,11 +63,11 @@
   "Create and attach an inline role policy"
   [rolename policyname policy]
   (let [response (aws/invoke @iam {:op :PutRolePolicy
-                                  :request {:RoleName rolename
-                                            :PolicyName policyname
-                                            :PolicyDocument (json/write-str
-                                                                  policy
-                                                                  :escape-slash false)}})
+                                   :request {:RoleName rolename
+                                             :PolicyName policyname
+                                             :PolicyDocument (json/write-str
+                                                               policy
+                                                               :escape-slash false)}})
         code (get-in response [:ErrorResponse :Error :Code])
         message (get-in response [:ErrorResponse :Error :Message])]
     (cond
@@ -76,13 +76,13 @@
 
 (defn create-lambda [fname role handler code]
   (let [response (aws/invoke @lambda {:op :CreateFunction
-                                     :request {:FunctionName fname
-                                               :Role role
-                                               :Runtime "java11"
-                                               :Handler handler
-                                               :MemorySize 512
-                                               :Timeout 25
-                                               :Code {:ZipFile code}}})
+                                      :request {:FunctionName fname
+                                                :Role role
+                                                :Runtime "java11"
+                                                :Handler handler
+                                                :MemorySize 512
+                                                :Timeout 25
+                                                :Code {:ZipFile code}}})
         message (:message response)]
     (cond
       (some? message) (throw (IllegalStateException. message))
