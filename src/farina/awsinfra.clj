@@ -128,3 +128,15 @@
 
 (defn create-subnet [vpc cidrblock]
   (generic-request ec2 {:op :CreateSubnet :request {:VpcId vpc :CidrBlock cidrblock}}))
+
+(defn create-role [rolename path service]
+  (let [policydoc
+        {:Version "2012-10-17"
+         :Statement [{:Effect "Allow"
+                      :Principal {:Service [service]}
+                      :Action "sts:AssumeRole"}]}]
+    (generic-request iam {:op :CreateRole
+                          :request {:RoleName rolename
+                                    :Path path
+                                    :AssumeRolePolicyDocument (json/write-str policydoc
+                                                                              :escape-slash false)}})))
