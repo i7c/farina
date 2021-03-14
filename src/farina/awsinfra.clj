@@ -126,8 +126,11 @@
 (defn create-vpc [cidrblock]
   (generic-request ec2 {:op :CreateVpc :request {:CidrBlock cidrblock}}))
 
-(defn create-subnet [vpc cidrblock]
-  (generic-request ec2 {:op :CreateSubnet :request {:VpcId vpc :CidrBlock cidrblock}}))
+(defn create-subnet [vpc cidrblock az]
+  (generic-request ec2 {:op :CreateSubnet
+                        :request {:VpcId vpc
+                                  :CidrBlock cidrblock
+                                  :AvailabilityZone az}}))
 
 (defn create-role [rolename path service]
   (let [policydoc
