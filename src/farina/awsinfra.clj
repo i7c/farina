@@ -90,58 +90,43 @@
 
 (defn update-lambda-code [fname code]
   (let [response (aws/invoke @lambda {:op :UpdateFunctionCode
-                                     :request {:FunctionName fname
-                                               :ZipFile code}})
+                                      :request {:FunctionName fname
+                                                :ZipFile code}})
         message (:message response)]
     (cond
       (some? message) (throw (IllegalStateException. message))
       :else response)))
 
-(defn add-lambda-permission [statement fname action principal source-arn]
-  (let [response (aws/invoke @lambda {:op :AddPermission
-                                     :request {:FunctionName fname
-                                               :Action action
-                                               :Principal principal
-                                               :SourceArn source-arn
-                                               :StatementId statement}})
+(defn generic-request [client op]
+  (let [response (aws/invoke @client op)
         error (get response :cognitect.anomalies/category)]
-    (if (some? error) (println (str response)))
-    response))
+    (cond (some? error) (throw (IllegalStateException. (str response)))
+          :else response)))
+
+
+(defn add-lambda-permission [statement fname action principal source-arn]
+  (generic-request lambda {:op :AddPermission
+                           :request {:FunctionName fname
+                                     :Action action
+                                     :Principal principal
+                                     :SourceArn source-arn
+                                     :StatementId statement}}))
 
 (defn create-eventbridge-rule [rulename schedule desc rolearn]
-  (let [response (aws/invoke @eb {:op :PutRule
-                                 :request {:Name rulename
-                                           :ScheduleExpression schedule
-                                           :State "ENABLED"
-                                           :Description desc
-                                           :Role rolearn}})
-        error (get response :cognitect.anomalies/category)]
-    (if (some? error) (throw (IllegalStateException. "Could not create EventBridge rule")))
-    response))
+  (generic-request eb {:op :PutRule
+                       :request {:Name rulename
+                                 :ScheduleExpression schedule
+                                 :State "ENABLED"
+                                 :Description desc
+                                 :Role rolearn}}))
 
 (defn put-eventbridge-rule-targets [rule targets]
-  (let [response (aws/invoke @eb {:op :PutTargets
-                                 :request {:Rule rule
-                                           :Targets targets}})
-        failed-count (get response :FailedEntryCount)
-        failed-entries (get response :FailedEntries)]
-    (cond
-      (some? failed-count) (if (> failed-count 0)
-                             (throw (IllegalStateException. (str failed-entries))))
-      :else response)))
+  (generic-request eb {:op :PutTargets :request {:Rule rule :Targets targets}}))
 
 (defn create-ecs-cluster [cname]
-  (let [response (aws/invoke @ecs {:op :CreateCluster
-                                   :request {:clusterName cname
-                                             :capacityProviders ["FARGATE"]}})
-        error (get response :cognitect.anomalies/category)]
-    (cond (some? error) (throw (IllegalStateException. (str response)))
-          :else response)))
+  (generic-request ecs {:op :CreateCluster
+                        :request {:clusterName cname :capacityProviders ["FARGATE"]}}))
 
 (defn create-ecs-task-definition [family containerdefs]
-  (let [response (aws/invoke @ecs {:op :RegisterTaskDefinition
-                                   :request {:family family
-                                             :containerDefinitions containerdefs}})
-        error (get response :cognitect.anomalies/category)]
-    (cond (some? error) (throw (IllegalStateException. (str response)))
-          :else response)))
+  (generic-request ecs {:op :RegisterTaskDefinition
+                        :request {:family family :containerDefinitions containerdefs}}))
