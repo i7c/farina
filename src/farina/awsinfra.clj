@@ -143,3 +143,9 @@
                                     :Path path
                                     :AssumeRolePolicyDocument (json/write-str policydoc
                                                                               :escape-slash false)}})))
+
+(defn create-eks-cluster [clustername role vpcconfig]
+  (generic-request eks {:op :CreateCluster
+                        :request {:name clustername
+                                  :roleArn role
+                                  :resourcesVpcConfig vpcconfig}}))
