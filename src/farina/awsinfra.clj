@@ -1,5 +1,5 @@
 (ns farina.awsinfra
-  (:require [farina.awsclient :refer [region eb iam lambda s3 ecs ec2]]
+  (:require [farina.awsclient :refer [region eb iam lambda s3 eks ec2]]
             [clj-http.client :as client]
             [clojure.string :as s]
             [clojure.data.json :as json]
@@ -122,14 +122,6 @@
 
 (defn put-eventbridge-rule-targets [rule targets]
   (generic-request eb {:op :PutTargets :request {:Rule rule :Targets targets}}))
-
-(defn create-ecs-cluster [cname]
-  (generic-request ecs {:op :CreateCluster
-                        :request {:clusterName cname :capacityProviders ["FARGATE"]}}))
-
-(defn create-ecs-task-definition [family containerdefs]
-  (generic-request ecs {:op :RegisterTaskDefinition
-                        :request {:family family :containerDefinitions containerdefs}}))
 
 (defn create-vpc [cidrblock]
   (generic-request ec2 {:op :CreateVpc :request {:CidrBlock cidrblock}}))

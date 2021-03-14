@@ -11,7 +11,7 @@
                  [com.cognitect.aws/s3 "810.2.817.0"]
                  [com.cognitect.aws/lambda "811.2.844.0"]
                  [com.cognitect.aws/eventbridge "809.2.797.0"]
-                 [com.cognitect.aws/ecs "811.2.834.0"]
+                 [com.cognitect.aws/eks "811.2.858.0"]
                  [com.cognitect.aws/ec2 "811.2.858.0"]
                  [byte-streams "0.2.4"]
                  [clj-http "3.12.0"]]
