@@ -1,7 +1,9 @@
 (ns farina.infra
   (:require [farina.infrastate :refer [spawn resource]]
              [farina.awsinfra :as awsinfra]
-             [clojure.pprint :refer [pprint]]))
+             [farina.awsclient :as awsclient]
+             [clojure.pprint :refer [pprint]]
+             [clojure.data :refer [diff]]))
 
 (def basename "farina")
 (def bucketname basename)
@@ -138,9 +140,22 @@
                 (awsinfra/create-eks-cluster (:name i) (:role i) (:vpc-config i))))
     ))
 
-(defn provision [jarpath]
-  (let [infrastructure (flatten [storage (downloader jarpath) network eks])
-        before-state (read-string (slurp "state.edn"))
-        state (spawn before-state (reverse infrastructure))]
-    (spit "state.edn" (pr-str state))
+(defn state [] (read-string (slurp "state.edn")))
+
+(defn infra [jarpath] (flatten [storage (downloader jarpath) network eks]))
+
+(defn provision-infra [infra]
+  (let [before-state (state)
+        after-state (spawn before-state (reverse infra))]
+    (spit "state.edn" (pr-str after-state))
     (pprint state)))
+
+(defn provision [jarpath]
+  (provision-infra (infra jarpath)))
+
+(defn manipulate-state-dry-run [f]
+  (let [before-state (state)
+        after-state (spawn before-state (list f))
+        [before after _] (diff before-state after-state)]
+    (pr-str {:before (keys before)
+             :after (keys after)})))
