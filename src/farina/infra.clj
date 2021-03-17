@@ -93,9 +93,23 @@
               (fn [d i]
                 (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))))
 
+(def cruncher
+  (resource :dynamodb-table/farina
+            {:TableName (str basename "-germany")
+             :AttributeDefinitions [{:AttributeName "region" :AttributeType "N"}
+                                    {:AttributeName "date" :AttributeType "N"}]
+             :KeySchema [{:AttributeName "region" :KeyType "HASH"}
+                         {:AttributeName "date" :KeyType "RANGE"}]
+             :BillingMode "PAY_PER_REQUEST"}
+            []
+            (fn [d i]
+              (awsinfra/generic-request
+                awsclient/dynamo
+                {:op :CreateTable :request i}))))
+
 (defn state [] (read-string (slurp "state.edn")))
 
-(defn infra [jarpath] (flatten [storage (downloader jarpath)]))
+(defn infra [jarpath] (flatten [storage (downloader jarpath) cruncher]))
 
 (defn provision-infra [infra]
   (let [before-state (state)

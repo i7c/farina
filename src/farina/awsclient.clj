@@ -3,6 +3,7 @@
 
 (def region "eu-central-1")
 
+(def dynamo (delay (aws/client {:api :dynamodb :region region})))
 (def eb (delay (aws/client {:api :eventbridge :region region})))
 (def ec2 (delay (aws/client {:api :ec2 :region region})))
 (def eks (delay (aws/client {:api :eks :region region})))
