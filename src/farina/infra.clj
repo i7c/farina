@@ -93,56 +93,9 @@
               (fn [d i]
                 (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))))
 
-(def network
-  (list
-    (resource :ec2/vpc
-              {:cidr "10.0.0.0/16"}
-              []
-              (fn [d i] (awsinfra/create-vpc (:cidr i))))
-
-    (resource :ec2/eks-subnet1
-              {:cidr "10.0.1.0/24"
-               :vpc #(get-in % [:ec2/vpc :resource :Vpc :VpcId])
-               :az "eu-central-1a"}
-              [:ec2/vpc]
-              (fn [d i] (awsinfra/create-subnet (:vpc i) (:cidr i) (:az i))))
-
-    (resource :ec2/eks-subnet2
-              {:cidr "10.0.2.0/24"
-               :vpc #(get-in % [:ec2/vpc :resource :Vpc :VpcId])
-               :az "eu-central-1b"}
-              [:ec2/vpc]
-              (fn [d i] (awsinfra/create-subnet (:vpc i) (:cidr i) (:az i))))
-    ))
-
-(def eks
-  (list
-    (resource :role/eks
-              {:name (str basename "-eks")
-               :path (str "/" basename "/")
-               :service "eks.amazonaws.com"}
-              []
-              (fn [d i]
-                (let [result (awsinfra/create-role (:name i) (:path i) (:service i))]
-                  (awsinfra/attach-role-policy
-                    (get-in result [:Role :RoleName])
-                    "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy")
-                  result)))
-
-    (resource :eks/cluster
-              {:name basename
-               :role #(get-in % [:role/eks :resource :Role :Arn])
-               :vpc-config #(do {:endpointPublicAccess true
-                                 :subnetIds [(get-in % [:ec2/eks-subnet1 :resource :Subnet :SubnetId])
-                                             (get-in % [:ec2/eks-subnet2 :resource :Subnet :SubnetId])]})}
-              [:role/eks :ec2/eks-subnet1 :ec2/eks-subnet2]
-              (fn [d i]
-                (awsinfra/create-eks-cluster (:name i) (:role i) (:vpc-config i))))
-    ))
-
 (defn state [] (read-string (slurp "state.edn")))
 
-(defn infra [jarpath] (flatten [storage (downloader jarpath) network eks]))
+(defn infra [jarpath] (flatten [storage (downloader jarpath)]))
 
 (defn provision-infra [infra]
   (let [before-state (state)
