@@ -15,7 +15,8 @@
                  [com.cognitect.aws/ec2 "811.2.858.0"]
                  [com.cognitect.aws/dynamodb "810.2.801.0"]
                  [byte-streams "0.2.4"]
-                 [clj-http "3.12.0"]]
+                 [clj-http "3.12.0"]
+                 [clj-time "0.15.2"]]
   :main ^:skip-aot farina.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}})
