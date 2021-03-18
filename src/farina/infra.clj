@@ -2,6 +2,7 @@
   (:require [farina.infrastate :refer [spawn resource]]
              [farina.awsinfra :as awsinfra]
              [farina.awsclient :as awsclient]
+             [clojure.data.json :as json]
              [clojure.pprint :refer [pprint]]
              [clojure.data :refer [diff]]))
 
@@ -94,18 +95,56 @@
                 (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))))
 
 (def cruncher
-  (resource :dynamodb-table/farina
-            {:TableName (str basename "-germany")
-             :AttributeDefinitions [{:AttributeName "region" :AttributeType "N"}
-                                    {:AttributeName "date" :AttributeType "N"}]
-             :KeySchema [{:AttributeName "region" :KeyType "HASH"}
-                         {:AttributeName "date" :KeyType "RANGE"}]
-             :BillingMode "PAY_PER_REQUEST"}
-            []
-            (fn [d i]
-              (awsinfra/generic-request
-                awsclient/dynamo
-                {:op :CreateTable :request i}))))
+  (list
+    (resource :dynamodb-table/farina
+              {:TableName (str basename "-germany")
+               :AttributeDefinitions [{:AttributeName "region" :AttributeType "N"}
+                                      {:AttributeName "date" :AttributeType "N"}]
+               :KeySchema [{:AttributeName "region" :KeyType "HASH"}
+                           {:AttributeName "date" :KeyType "RANGE"}]
+               :BillingMode "PAY_PER_REQUEST"}
+              []
+              (fn [d i]
+                (awsinfra/generic-request
+                  awsclient/dynamo
+                  {:op :CreateTable :request i})))
+
+    (resource :role/cruncher
+              {:RoleName (str basename "-cruncher")
+               :Path (str "/" basename "/")
+               :AssumeRolePolicyDocument
+               (json/write-str {:Version "2012-10-17"
+                                :Statement [{:Effect "Allow"
+                                             :Principal {:Service ["lambda.amazonaws.com"]}
+                                             :Action "sts:AssumeRole"}]}
+                               :escape-slash false)}
+              []
+              (fn [d i]
+                (let [role (awsinfra/generic-request awsclient/iam {:op :CreateRole :request i})]
+                  (awsinfra/generic-request
+                    awsclient/iam
+                    {:op :AttachRolePolicy
+                     :request {:RoleName (get-in role [:Role :RoleName])
+                               :PolicyArn "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"}})
+                  role)))
+
+    (resource :role-policy/cruncher
+              {:RoleName #(get-in % [:role/cruncher :resource :Role :RoleName])
+               :PolicyName "farina-cruncher-s3-access"
+               :PolicyDocument #(do (json/write-str
+                                      {:Version "2012-10-17"
+                                       :Statement [{:Effect "Allow"
+                                                    :Action ["s3:GetObject"]
+                                                    :Resource [(str
+                                                                 "arn:aws:s3:::"
+                                                                 (get-in % [:s3/rawdata :inputs :bucketname])
+                                                                 "/*")]}]}
+                                      :escape-slash false))}
+              [:role/cruncher :s3/rawdata]
+              (fn [d i]
+                (awsinfra/generic-request
+                  awsclient/iam {:op :PutRolePolicy :request i})))
+    ))
 
 (defn state [] (read-string (slurp "state.edn")))
 
