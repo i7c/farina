@@ -98,9 +98,9 @@
   (list
     (resource :dynamodb-table/farina
               {:TableName (str basename "-germany")
-               :AttributeDefinitions [{:AttributeName "region" :AttributeType "N"}
+               :AttributeDefinitions [{:AttributeName "space" :AttributeType "S"}
                                       {:AttributeName "date" :AttributeType "N"}]
-               :KeySchema [{:AttributeName "region" :KeyType "HASH"}
+               :KeySchema [{:AttributeName "space" :KeyType "HASH"}
                            {:AttributeName "date" :KeyType "RANGE"}]
                :BillingMode "PAY_PER_REQUEST"}
               []
