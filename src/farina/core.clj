@@ -1,6 +1,6 @@
 (ns farina.core
   (:require [farina.infra :as infra]
-            [farina.awsclient :refer [s3 dynamo]]
+            [farina.awsclient :refer [s3 dynamo sqs]]
             [farina.dwd]
             [clojure.string :as s]
             [clojure.data.json :as json]
@@ -26,6 +26,11 @@
         code (get-in response [:Error :Code])
         message (get-in response [:Error :Message])]
     (if (some? code) (throw (IllegalStateException. message)))
+    ; write to queue that this file is ready for processing
+    (let [queue-url (System/getenv "QUEUE_RAWDATA")]
+      (aws/invoke @sqs {:op :SendMessage
+                        :request {:QueueUrl queue-url
+                                  :MessageBody date}}))
     (json/write-str response)))
 
 (defn get-object [bucket file]
