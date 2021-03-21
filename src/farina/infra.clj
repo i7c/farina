@@ -58,12 +58,23 @@
                 (awsinfra/put-role-policy (:rolename i) (:policyname i) (:policy i))))
 
     (resource :lambda/downloader
-              {:name (str basename "-downloader")
-               :role #(get-in % [:role/downloader :resource :Arn])
-               :handler "farina.core::download"}
-              [:role/downloader]
+              {:FunctionName (str basename "-downloader")
+               :Role #(get-in % [:role/downloader :resource :Arn])
+               :Runtime "java11"
+               :Handler "farina.core::download"
+               :MemorySize 512
+               :Timeout 25
+               :Environment
+               #(do {:Variables
+                     {"QUEUE_RAWDATA" (get-in % [:sqs/farina-rawdata :resource :QueueUrl])}})}
+              [:role/downloader :sqs/farina-rawdata]
               (fn [d i]
-                (awsinfra/create-lambda (:name i) (:role i) (:handler i) (byte-streams/to-byte-array (java.io.File. jarpath)))))
+                (awsinfra/generic-request
+                  awsclient/lambda
+                  {:op :CreateFunction
+                   :request (assoc
+                              i
+                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})})))
 
     (resource :eventbridgerule/downloader
               {:name (str basename "-downloader")
