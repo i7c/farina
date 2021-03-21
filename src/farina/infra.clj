@@ -94,7 +94,7 @@
               (fn [d i]
                 (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))))
 
-(def cruncher
+(defn cruncher [jarpath]
   (list
     (resource :dynamodb-table/farina
               {:TableName (str basename "-germany")
@@ -152,11 +152,27 @@
               (fn [d i]
                 (awsinfra/generic-request
                   awsclient/iam {:op :PutRolePolicy :request i})))
+
+    (resource :lambda/cruncher
+              {:FunctionName (str basename "-cruncher")
+               :Role #(get-in % [:role/cruncher :resource :Role :Arn])
+               :Runtime "java11"
+               :Handler "farina.core::crunch"
+               :MemorySize 512
+               :Timeout 25}
+              [:role/cruncher]
+              (fn [d i]
+                (awsinfra/generic-request
+                  awsclient/lambda
+                  {:op :CreateFunction
+                   :request (assoc
+                              i
+                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})})))
     ))
 
 (defn state [] (read-string (slurp "state.edn")))
 
-(defn infra [jarpath] (flatten [storage (downloader jarpath) cruncher]))
+(defn infra [jarpath] (flatten [storage (downloader jarpath) (cruncher jarpath)]))
 
 (defn provision-infra [infra]
   (let [before-state (state)
