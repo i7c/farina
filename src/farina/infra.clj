@@ -19,6 +19,14 @@
                   (awsinfra/enable-bucket-versioning bucketname)
                   {:location response})))))
 
+(def orchestration
+  (list
+    (resource :sqs/farina-rawdata
+              {:QueueName (str basename "-rawdata")}
+              []
+              (fn [d i] (awsinfra/generic-request awsclient/sqs {:op :CreateQueue
+                                                                 :request i})))))
+
 (defn downloader [jarpath]
   (list
     ; TODO: replace with new function
@@ -146,7 +154,15 @@
                                                                  [:dynamodb-table/farina
                                                                   :resource
                                                                   :TableDescription
-                                                                  :TableArn])]}]}
+                                                                  :TableArn])]}
+                                                   {:Action ["sqs:GetQueueAttributes"
+                                                             "sqs:GetQueueUrl"
+                                                             "sqs:ListDeadLetterSourceQueues"
+                                                             "sqs:ListQueues"
+                                                             "sqs:ReceiveMessage"
+                                                             "sqs:DeleteMessage"]
+                                                    :Effect "Allow"
+                                                    :Resource "*" }]}
                                       :escape-slash false))}
               [:role/cruncher :s3/rawdata :dynamodb-table/farina]
               (fn [d i]
@@ -172,7 +188,7 @@
 
 (defn state [] (read-string (slurp "state.edn")))
 
-(defn infra [jarpath] (flatten [storage (downloader jarpath) (cruncher jarpath)]))
+(defn infra [jarpath] (flatten [storage orchestration (downloader jarpath) (cruncher jarpath)]))
 
 (defn provision-infra [infra]
   (let [before-state (state)

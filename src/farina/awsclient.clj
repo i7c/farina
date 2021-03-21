@@ -10,3 +10,4 @@
 (def iam (delay (aws/client {:api :iam :region region})))
 (def lambda (delay (aws/client {:api :lambda :region region})))
 (def s3 (delay (aws/client {:api :s3 :region region})))
+(def sqs (delay (aws/client {:api :sqs :region region})))
