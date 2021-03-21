@@ -130,7 +130,7 @@
 
     (resource :role-policy/cruncher
               {:RoleName #(get-in % [:role/cruncher :resource :Role :RoleName])
-               :PolicyName "farina-cruncher-s3-access"
+               :PolicyName "farina-cruncher-s3-and-dynamodb"
                :PolicyDocument #(do (json/write-str
                                       {:Version "2012-10-17"
                                        :Statement [{:Effect "Allow"
@@ -138,9 +138,17 @@
                                                     :Resource [(str
                                                                  "arn:aws:s3:::"
                                                                  (get-in % [:s3/rawdata :inputs :bucketname])
-                                                                 "/*")]}]}
+                                                                 "/*")]}
+                                                   {:Effect "Allow"
+                                                    :Action ["dynamodb:BatchWriteItem"]
+                                                    :Resource [(get-in
+                                                                 %
+                                                                 [:dynamodb-table/farina
+                                                                  :resource
+                                                                  :TableDescription
+                                                                  :TableArn])]}]}
                                       :escape-slash false))}
-              [:role/cruncher :s3/rawdata]
+              [:role/cruncher :s3/rawdata :dynamodb-table/farina]
               (fn [d i]
                 (awsinfra/generic-request
                   awsclient/iam {:op :PutRolePolicy :request i})))
