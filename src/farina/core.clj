@@ -20,9 +20,9 @@
         decoded (json/read-str (:body raw))
         date (re-find #"^\d{4}-\d{2}-\d{2}" (get decoded "last_update"))
         response (aws/invoke @s3 {:op :PutObject
-                                 :request {:Bucket basename
-                                           :Key (str "raw/" date)
-                                           :Body (.getBytes (:body raw) "UTF-8")}})
+                                  :request {:Bucket basename
+                                            :Key (str "raw/" date)
+                                            :Body (.getBytes (:body raw) "UTF-8")}})
         code (get-in response [:Error :Code])
         message (get-in response [:Error :Message])]
     (if (some? code) (throw (IllegalStateException. message)))
