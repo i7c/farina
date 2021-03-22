@@ -80,7 +80,7 @@
                                         :Entries (map #(do {:Id (:MessageId %)
                                                             :ReceiptHandle (:ReceiptHandle %)})
                                                       (:Messages received-messages))}})
-            all-results))))))
+            (str (apply + all-results))))))))
 
 (defn -main [& args]
   (cond
