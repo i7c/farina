@@ -77,7 +77,9 @@
                   {:op :CreateFunction
                    :request (assoc
                               i
-                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})})))
+                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
+              :updater (fn [s d i]
+                         (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
 
     (resource :eventbridgerule/downloader
               {:name (str basename "-downloader")
@@ -202,11 +204,7 @@
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
               :updater (fn [s d i]
-                         (awsinfra/generic-request
-                           awsclient/lambda
-                           {:op :UpdateFunctionCode
-                            :request {:FunctionName (:FunctionName s)
-                                      :ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))}})))
+                         (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
     ))
 
 (defn state [] (read-string (slurp "state.edn")))

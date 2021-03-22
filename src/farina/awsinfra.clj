@@ -149,3 +149,10 @@
                         :request {:name clustername
                                   :roleArn role
                                   :resourcesVpcConfig vpcconfig}}))
+
+(defn lambda-update-code [fname path]
+  (generic-request
+    lambda
+    {:op :UpdateFunctionCode
+     :request {:FunctionName fname
+               :ZipFile (byte-streams/to-byte-array (java.io.File. path))}}))
