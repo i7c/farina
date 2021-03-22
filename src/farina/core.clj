@@ -9,7 +9,7 @@
             [clojure.pprint :refer [pprint]])
   (:gen-class
     :methods [^:static [download [] String]
-              ^:static [crunch [String] String]]))
+              ^:static [crunch [] String]]))
 
 (def basename "farina")
 
@@ -62,7 +62,7 @@
         (throw (IllegalStateException. "Not all items could be processed"))
         (count dynamodb-format)))))
 
-(defn -crunch [file]
+(defn -crunch []
   (let [received-messages (aws/invoke @sqs {:op :ReceiveMessage
                                             :request {:QueueUrl (System/getenv "QUEUE_RAWDATA")
                                                       :MaxNumberOfMessage 5}})]
