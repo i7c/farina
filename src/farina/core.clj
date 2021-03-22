@@ -71,7 +71,7 @@
       (throw (IllegalStateException. (str "Could not read message from queue " received-messages))))
     (loop [messages (:Messages received-messages)
            results (list)]
-      (let [process-result (process-and-write-to-db (str "raw/" (:Body (first messages))))
+      (let [process-result (process-and-write-to-db (:Body (first messages)))
             all-results (conj results process-result)]
         (if (> (count (rest messages)) 0)
           (recur (rest messages) all-results)
