@@ -72,7 +72,7 @@
            results (list)]
       (let [process-result (process-and-write-to-db (str "raw/" (:Body (first messages))))
             all-results (conj results process-result)]
-        (if (> (count messages) 0)
+        (if (> (count (rest messages)) 0)
           (recur (rest messages) all-results)
           (do
             (aws/invoke @sqs {:op :DeleteMessageBatch
