@@ -193,7 +193,7 @@
                :Environment
                #(do {:Variables
                      {"QUEUE_RAWDATA" (get-in % [:sqs/farina-rawdata :resource :QueueUrl])}})}
-              [:role/cruncher]
+              [:role/cruncher :sqs/farina-rawdata]
               (fn [d i]
                 (awsinfra/generic-request
                   awsclient/lambda
