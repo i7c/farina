@@ -85,7 +85,7 @@
               {:name (str basename "-downloader")
                :schedule "rate(15 minutes)"
                :description "Schedules the farina downloader for pulling raw data"
-               :role #(get-in % [:role/downloader :resrouce :Arn])}
+               :role #(get-in % [:role/downloader :resource :Arn])}
               [:role/downloader]
               (fn [d i]
                 (awsinfra/create-eventbridge-rule
@@ -205,7 +205,35 @@
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
               :updater (fn [s d i]
                          (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
-    ))
+
+    (resource :eventbridgerule/cruncher
+              {:Name (str basename "-cruncher")
+               :ScheduleExpression "rate(3 minutes)"
+               :Description "Schedules the farina cruncher for processing raw data"
+               :Role #(get-in % [:role/cruncher :resource :Role :Arn])}
+              [:role/cruncher]
+              (fn [d i]
+                (awsinfra/generic-request awsclient/eb {:op :PutRule :request i})))
+
+    (resource :lambdapermission/cruncher
+              {:FunctionName #(get-in % [:lambda/cruncher :resource :FunctionName])
+               :Action "lambda:InvokeFunction"
+               :Principal "events.amazonaws.com"
+               :SourceArn #(get-in % [:eventbridgerule/cruncher :resource :RuleArn])
+               :StatementId "eventbridge-can-invoke"}
+              [:lambda/cruncher :eventbridgerule/cruncher]
+              (fn [d i]
+                (awsinfra/generic-request awsclient/lambda {:op :AddPermission :request i})))
+
+    (resource :eventbridgerule-target/cruncher
+              {:Rule #(get-in % [:eventbridgerule/cruncher :inputs :Name])
+               :Targets #(do
+                           [{:Id "farina-cruncher"
+                             :Arn (get-in % [:lambda/cruncher :resource :FunctionArn])}])}
+              [:eventbridgerule/cruncher :lambda/cruncher]
+              (fn [d i]
+                (awsinfra/generic-request awsclient/eb {:op :PutTargets :request i})))
+  ))
 
 (defn state [] (read-string (slurp "state.edn")))
 
