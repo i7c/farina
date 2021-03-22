@@ -19,9 +19,10 @@
               {:accept :json})
         decoded (json/read-str (:body raw))
         date (re-find #"^\d{4}-\d{2}-\d{2}" (get decoded "last_update"))
+        filepath (str "raw/" date)
         response (aws/invoke @s3 {:op :PutObject
                                   :request {:Bucket basename
-                                            :Key (str "raw/" date)
+                                            :Key filepath
                                             :Body (.getBytes (:body raw) "UTF-8")}})
         code (get-in response [:Error :Code])
         message (get-in response [:Error :Message])]
@@ -30,7 +31,7 @@
     (let [queue-url (System/getenv "QUEUE_RAWDATA")]
       (aws/invoke @sqs {:op :SendMessage
                         :request {:QueueUrl queue-url
-                                  :MessageBody date}}))
+                                  :MessageBody filepath}}))
     (json/write-str response)))
 
 (defn get-object [bucket file]
