@@ -40,7 +40,7 @@
       (throw (IllegalStateException. (str response)))
       (slurp (:Body response)))))
 
-(defn -crunch [file]
+(defn process-and-write-to-db [file]
   (let [raw (get-object basename file)
         json (json/read-str raw)
         extracted (farina.dwd/extract-dwd-pollen-data json)
@@ -59,7 +59,28 @@
                                             {"farina-germany" %}}})))
           unprocessed (map #(:UnprocessedItems %) result)]
       (if (not-every? empty? unprocessed)
-        (throw (IllegalStateException. "Not all items could be processed"))))))
+        (throw (IllegalStateException. "Not all items could be processed"))
+        (count dynamodb-format)))))
+
+(defn -crunch [file]
+  (let [received-messages (aws/invoke @sqs {:op :ReceiveMessage
+                                            :request {:QueueUrl (System/getenv "QUEUE_RAWDATA")
+                                                      :MaxNumberOfMessage 5}})]
+    (if (some? (:cognitect.anomalies/category received-messages))
+      (throw (IllegalStateException. (str "Could not read message from queue " received-messages))))
+    (loop [messages (:Messages received-messages)
+           results (list)]
+      (let [process-result (process-and-write-to-db (str "raw/" (:Body (first messages))))
+            all-results (conj results process-result)]
+        (if (> (count messages) 0)
+          (recur (rest messages) all-results)
+          (do
+            (aws/invoke @sqs {:op :DeleteMessageBatch
+                              :request {:QueueUrl (System/getenv "QUEUE_RAWDATA")
+                                        :Entries (map #(do {:Id (:MessageId %)
+                                                            :ReceiptHandle (:ReceiptHandle %)})
+                                                      (:Messages received-messages))}})
+            all-results))))))
 
 (defn -main [& args]
   (cond
