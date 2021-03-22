@@ -214,7 +214,8 @@
                            :afterfn (fn [bef aft]
                                       (let [[b a _] (diff bef aft)]
                                         (if (some? b) (println "REM " b))
-                                        (if (some? a) (println "ADD " a)))))]
+                                        (if (some? a) (println "ADD " a)))
+                                      (spit "state.edn" (pr-str aft))))]
     (spit "state.edn" (pr-str after-state))))
 
 (defn provision [jarpath]
