@@ -155,3 +155,36 @@
                               :c "foo"})]
     (is (nil? a))
     (is (nil? b))))
+
+(deftest updater-changes-resource
+  (let [res (resource :foo
+                      {:v 1}
+                      []
+                      (fn [d i] i)
+                      :updater (fn [s d i] s))
+
+        initial {}
+        spawned (spawn initial (list res))
+
+        [a1 b1 _] (diff spawned {:foo {:inputs {:v 1}
+                                       :resource {:v 1}
+                                       :state :spawned}
+                                 :outcome :complete})
+
+        updated-res (resource :foo
+                              {:v 1 :useless 5}
+                              []
+                              (fn [d i] i)
+                              :updater (fn [s d i]
+                                         (assoc s :v 2)))
+        updated (spawn spawned (list updated-res))
+
+        [a2 b2 _] (diff updated {:foo {:inputs {:v 1 :useless 5}
+                                       :resource {:v 2}
+                                       :state :spawned}
+                                 :outcome :complete})]
+
+    (is (nil? a1))
+    (is (nil? b1))
+    (is (nil? a2))
+    (is (nil? b2))))

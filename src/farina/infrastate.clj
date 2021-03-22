@@ -31,7 +31,8 @@
 ;  :resource {}
 ;  :state :spawned}
 
-(defn resource [rname ispec dspec breeder]
+(defn resource [rname ispec dspec breeder & {:keys [updater]
+                                             :or {updater nil}}]
   (fn [state]
     (assoc
       state
@@ -51,9 +52,13 @@
                 resource)
 
               (= rstate :needs-update)
-              (do
-                (println "WARN:" rname "needs update, but we don't handle that")
-                resource)
+              (if (some? updater)
+                {:resource (updater (:resource resource) deps inputs)
+                 :inputs inputs
+                 :state :spawned}
+                (do
+                  (println "WARN:" rname "needs update, but there is no updater")
+                  resource))
 
               (nil? resource)
               {:resource (breeder deps inputs)
