@@ -200,7 +200,13 @@
                   {:op :CreateFunction
                    :request (assoc
                               i
-                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})})))
+                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
+              :updater (fn [s d i]
+                         (awsinfra/generic-request
+                           awsclient/lambda
+                           {:op :UpdateFunctionCode
+                            :request {:FunctionName (:FunctionName s)
+                                      :ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))}})))
     ))
 
 (defn state [] (read-string (slurp "state.edn")))
