@@ -203,7 +203,12 @@
 
 (defn provision-infra [infra]
   (let [before-state (state)
-        after-state (spawn before-state (reverse infra))]
+        after-state (spawn before-state
+                           (reverse infra)
+                           :afterfn (fn [bef aft]
+                                      (let [[b a _] (diff bef aft)]
+                                        (if (some? b) (println "REM " b))
+                                        (if (some? a) (println "ADD " a)))))]
     (spit "state.edn" (pr-str after-state))
     (pprint state)))
 
