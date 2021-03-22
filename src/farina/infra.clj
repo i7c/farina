@@ -189,7 +189,10 @@
                :Runtime "java11"
                :Handler "farina.core::crunch"
                :MemorySize 512
-               :Timeout 25}
+               :Timeout 25
+               :Environment
+               #(do {:Variables
+                     {"QUEUE_RAWDATA" (get-in % [:sqs/farina-rawdata :resource :QueueUrl])}})}
               [:role/cruncher]
               (fn [d i]
                 (awsinfra/generic-request
