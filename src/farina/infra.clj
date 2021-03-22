@@ -212,8 +212,7 @@
                                       (let [[b a _] (diff bef aft)]
                                         (if (some? b) (println "REM " b))
                                         (if (some? a) (println "ADD " a)))))]
-    (spit "state.edn" (pr-str after-state))
-    (pprint state)))
+    (spit "state.edn" (pr-str after-state))))
 
 (defn provision [jarpath]
   (provision-infra (infra jarpath)))
