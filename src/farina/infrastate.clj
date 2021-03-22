@@ -1,8 +1,15 @@
 (ns farina.infrastate
   (:require [clojure.data :refer [diff]]))
 
-(defn spawn [initial-state brood]
-  (let [everything (apply comp brood)]
+(defn spawn [initial-state brood & {:keys [beforefn afterfn]
+                                    :or {beforefn identity
+                                         afterfn (fn [bef aft] aft)}}]
+  (let [intercepted (map #(fn [before]
+                            (beforefn before)
+                            (let [after (% before)]
+                              (afterfn before after)
+                              after)) brood)
+        everything (apply comp intercepted)]
     (loop [state initial-state
            iter-remaining 1000]
       (let [new-state (everything state)
