@@ -43,7 +43,7 @@
 
     (resource :role-policy/downloader
               {:rolename (fn [d] (get-in d [:role/downloader :resource :RoleName]))
-               :policyname "farina-downloader-s3-access"
+               :policyname "farina-downloader"
                :policy (fn [d]
                          {:Version "2012-10-17"
                           :Statement [{:Effect "Allow"
@@ -51,7 +51,10 @@
                                        :Resource [(str
                                                     "arn:aws:s3:::"
                                                     (get-in d [:s3/rawdata :inputs :bucketname])
-                                                    "/*")]}]})}
+                                                    "/*")]}
+                                      {:Action ["sqs:SendMessage"]
+                                       :Effect "Allow"
+                                       :Resource "*" }]})}
               [:role/downloader :s3/rawdata]
               (fn [d i]
                 (awsinfra/attach-role-policy (:rolename i) "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")
