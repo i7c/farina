@@ -235,9 +235,78 @@
                 (awsinfra/generic-request awsclient/eb {:op :PutTargets :request i})))
   ))
 
+(defn querier [jarpath]
+  (list
+    (resource :role/querier
+              {:RoleName (str basename "-querier")
+               :Path (str "/" basename "/")
+               :AssumeRolePolicyDocument
+               (json/write-str {:Version "2012-10-17"
+                                :Statement [{:Effect "Allow"
+                                             :Principal {:Service ["lambda.amazonaws.com"]}
+                                             :Action "sts:AssumeRole"}]}
+                               :escape-slash false)}
+              []
+              (fn [d i]
+                (let [role (awsinfra/generic-request awsclient/iam {:op :CreateRole :request i})]
+                  (awsinfra/generic-request
+                    awsclient/iam
+                    {:op :AttachRolePolicy
+                     :request {:RoleName (get-in role [:Role :RoleName])
+                               :PolicyArn "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"}})
+                  role)))
+
+    (resource :role-policy/querier
+              {:RoleName #(get-in % [:role/querier :resource :Role :RoleName])
+               :PolicyName "farina-querier-dynamodb"
+               :PolicyDocument #(do (json/write-str
+                                      {:Version "2012-10-17"
+                                       :Statement [{:Effect "Allow"
+                                                    :Action ["dynamodb:BatchGetItem"
+                                                             "dynamodb:Describe*"
+                                                             "dynamodb:List*"
+                                                             "dynamodb:GetItem"
+                                                             "dynamodb:Query"
+                                                             "dynamodb:Scan"
+                                                             "dynamodb:PartiQLSelect"]
+                                                    :Resource [(get-in
+                                                                 %
+                                                                 [:dynamodb-table/farina
+                                                                  :resource
+                                                                  :TableDescription
+                                                                  :TableArn])]}]}
+                                      :escape-slash false))}
+              [:role/querier :dynamodb-table/farina]
+              (fn [d i]
+                (awsinfra/generic-request
+                  awsclient/iam {:op :PutRolePolicy :request i})))
+
+    (resource :lambda/querier
+              {:FunctionName (str basename "-querier")
+               :Role #(get-in % [:role/querier :resource :Role :Arn])
+               :Runtime "java11"
+               :Handler "farina.core::grafana"
+               :MemorySize 512
+               :Timeout 25}
+              [:role/querier]
+              (fn [d i]
+                (awsinfra/generic-request
+                  awsclient/lambda
+                  {:op :CreateFunction
+                   :request (assoc
+                              i
+                              :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
+              :updater (fn [s d i]
+                         (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
+    ))
+
 (defn state [] (read-string (slurp "state.edn")))
 
-(defn infra [jarpath] (flatten [storage orchestration (downloader jarpath) (cruncher jarpath)]))
+(defn infra [jarpath] (flatten [storage
+                                orchestration
+                                (downloader jarpath)
+                                (cruncher jarpath)
+                                (querier jarpath)]))
 
 (defn provision-infra [infra]
   (let [before-state (state)
