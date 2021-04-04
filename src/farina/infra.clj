@@ -308,7 +308,7 @@
                                 (cruncher jarpath)
                                 (querier jarpath)]))
 
-(defn provision-infra [infra]
+(defn apply-brood [infra]
   (let [before-state (state)
         after-state (spawn before-state
                            (reverse infra)
@@ -320,7 +320,7 @@
     (spit "state.edn" (pr-str after-state))))
 
 (defn provision [jarpath]
-  (provision-infra (infra jarpath)))
+  (apply-brood (infra jarpath)))
 
 (defn manipulate-state-dry-run [f]
   (let [before-state (state)
