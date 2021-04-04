@@ -335,6 +335,3 @@
 (defn mark-stale [& resources]
   (apply comp
          (map #(fn [s] (assoc s % (assoc (% s) :state :needs-update))) resources)))
-
-     ;(let [current (res %)]
-     ;  )))
