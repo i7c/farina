@@ -311,7 +311,7 @@
 (defn apply-brood [infra]
   (let [before-state (state)
         after-state (spawn before-state
-                           (reverse infra)
+                           (reverse (flatten (list infra)))
                            :afterfn (fn [bef aft]
                                       (let [[b a _] (diff bef aft)]
                                         (if (some? b) (println "REM " b))
