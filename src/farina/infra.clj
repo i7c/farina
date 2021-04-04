@@ -285,7 +285,7 @@
               {:FunctionName (str basename "-querier")
                :Role #(get-in % [:role/querier :resource :Role :Arn])
                :Runtime "java11"
-               :Handler "farina.core::grafana"
+               :Handler "farina.GrafanaHandler"
                :MemorySize 512
                :Timeout 25}
               [:role/querier]
