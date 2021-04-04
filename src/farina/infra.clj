@@ -328,3 +328,13 @@
         [before after _] (diff before-state after-state)]
     (pr-str {:before (keys before)
              :after (keys after)})))
+
+(defn remove-from-state [& resources]
+  #(apply dissoc % resources))
+
+(defn mark-stale [& resources]
+  (apply comp
+         (map #(fn [s] (assoc s % (assoc (% s) :state :needs-update))) resources)))
+
+     ;(let [current (res %)]
+     ;  )))
