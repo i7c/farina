@@ -15,6 +15,7 @@
                  [com.cognitect.aws/ec2 "811.2.858.0"]
                  [com.cognitect.aws/dynamodb "810.2.801.0"]
                  [com.cognitect.aws/sqs "810.2.817.0"]
+                 [com.cognitect.aws/apigatewayv2 "811.2.824.0"]
                  [com.amazonaws/aws-lambda-java-core "1.0.0"]
                  [byte-streams "0.2.4"]
                  [clj-http "3.12.0"]

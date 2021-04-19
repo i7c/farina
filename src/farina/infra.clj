@@ -298,6 +298,26 @@
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
               :updater (fn [s d i]
                          (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
+
+    (resource :lambdapermission/querier
+              {:StatementId "apigw-can-invoke"
+               :FunctionName #(get-in % [:lambda/querier :resource :FunctionName])
+               :Action "lambda:InvokeFunction"
+               :Principal "apigateway.amazonaws.com"}
+              [:lambda/querier]
+              (fn [d i]
+                (awsinfra/generic-request awsclient/lambda {:op :AddPermission :request i})))
+    ))
+
+(def api
+  (list
+    (resource :api/grafana
+             {:Name (str basename "-grafana")
+              :Target #(get-in % [:lambda/querier :resource :FunctionArn])
+              :ProtocolType "HTTP"}
+             [:lambda/querier]
+             (fn [d i]
+               (awsinfra/generic-request awsclient/apigw {:op :CreateApi :request i})))
     ))
 
 (defn state [] (read-string (slurp "state.edn")))
@@ -306,7 +326,8 @@
                                 orchestration
                                 (downloader jarpath)
                                 (cruncher jarpath)
-                                (querier jarpath)]))
+                                (querier jarpath)
+                                api]))
 
 (defn apply-brood [infra]
   (let [before-state (state)
