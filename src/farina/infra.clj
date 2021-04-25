@@ -329,7 +329,7 @@
                                 (querier jarpath)
                                 api]))
 
-(defn apply-brood [infra]
+(defn apply-change [infra]
   (let [before-state (state)
         after-state (spawn before-state
                            (reverse (flatten (list infra)))
@@ -341,7 +341,7 @@
     (spit "state.edn" (pr-str after-state))))
 
 (defn provision [jarpath]
-  (apply-brood (infra jarpath)))
+  (apply-change (infra jarpath)))
 
 (defn manipulate-state-dry-run [f]
   (let [before-state (state)
