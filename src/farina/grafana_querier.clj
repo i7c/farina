@@ -8,19 +8,24 @@
     :name farina.GrafanaHandler
     :implements [com.amazonaws.services.lambda.runtime.RequestStreamHandler]))
 
+(defn raw [request]
+  (let [space (get-in request ["queryStringParameters" "space"] "120122-alder")
+        rawdata (aws/invoke @client/dynamo
+                            {:op :Query
+                             :request {:TableName "farina-germany"
+                                       :KeyConditionExpression "#spce = :s"
+                                       :ExpressionAttributeValues {":s" {:S space}}
+                                       :ExpressionAttributeNames {"#spce" "space"}
+                                       :ScanIndexForward false}})]
+    (map #(do {:intensity (get-in % [:intensity :N]) :date (get-in % [:date :N])})
+         (:Items rawdata))))
+
 (defn -handleRequest [_ in out context]
   (with-open [writer (io/writer out)
               reader (io/reader in)]
     (let [request (json/read-str (slurp reader))
-          space (get-in request ["queryStringParameters" "space"] "120122-alder")
-          rawdata (aws/invoke @client/dynamo
-                              {:op :Query
-                               :request {:TableName "farina-germany"
-                                         :KeyConditionExpression "#spce = :s"
-                                         :ExpressionAttributeValues {":s" {:S space}}
-                                         :ExpressionAttributeNames {"#spce" "space"}
-                                         :ScanIndexForward false}})
-          data (map #(do {:intensity (get-in % [:intensity :N])
-                          :date (get-in % [:date :N])})
-                    (:Items rawdata))]
-      (.write writer (json/write-str data)))))
+          path (get-in request ["requestContext" "http" "path"])
+          result (cond
+                   (clojure.string/starts-with? path "/raw") (raw request)
+                   :else (list))]
+      (.write writer (json/write-str result)))))
