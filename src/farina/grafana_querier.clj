@@ -8,15 +8,18 @@
     :name farina.GrafanaHandler
     :implements [com.amazonaws.services.lambda.runtime.RequestStreamHandler]))
 
+(defn query-for-space [space]
+  (aws/invoke @client/dynamo
+              {:op :Query
+               :request {:TableName "farina-germany"
+                         :KeyConditionExpression "#spce = :s"
+                         :ExpressionAttributeValues {":s" {:S space}}
+                         :ExpressionAttributeNames {"#spce" "space"}
+                         :ScanIndexForward false}}))
+
 (defn raw [request]
   (let [space (get-in request ["queryStringParameters" "space"] "120122-alder")
-        rawdata (aws/invoke @client/dynamo
-                            {:op :Query
-                             :request {:TableName "farina-germany"
-                                       :KeyConditionExpression "#spce = :s"
-                                       :ExpressionAttributeValues {":s" {:S space}}
-                                       :ExpressionAttributeNames {"#spce" "space"}
-                                       :ScanIndexForward false}})]
+        rawdata (query-for-space space)]
     (map #(do {:intensity (get-in % [:intensity :N]) :date (get-in % [:date :N])})
          (:Items rawdata))))
 
