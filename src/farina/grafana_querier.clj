@@ -30,5 +30,8 @@
           path (get-in request ["requestContext" "http" "path"])
           result (cond
                    (clojure.string/starts-with? path "/raw") (raw request)
+                   (clojure.string/starts-with? path "/annotations") (list)
+                   (clojure.string/starts-with? path "/search") (list "pollen")
+                   (clojure.string/starts-with? path "/") "OK"
                    :else (list))]
       (.write writer (json/write-str result)))))
