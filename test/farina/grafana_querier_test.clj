@@ -41,8 +41,8 @@
 
 (deftest query-raw-with-data
   (let [response (test-request "/raw" :query-params {:space "120122-ash"})
-        [a b _] (diff response [{"intensity" "3", "date" "1619827200000"}
-                                {"intensity" "3", "date" "1619740800000"}
-                                {"intensity" "3", "date" "1619654400000"}])]
+        [a b _] (diff response [{"intensity" 3, "date" 1619827200000}
+                                {"intensity" 3, "date" 1619740800000}
+                                {"intensity" 3, "date" 1619654400000}])]
     (is (nil? a))
     (is (nil? b))))

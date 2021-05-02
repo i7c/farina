@@ -20,7 +20,8 @@
 (defn raw [request]
   (let [space (get-in request ["queryStringParameters" "space"] "120122-alder")
         rawdata (query-for-space space)]
-    (map #(do {:intensity (get-in % [:intensity :N]) :date (get-in % [:date :N])})
+    (map #(do {:intensity (Integer. (get-in % [:intensity :N]))
+               :date (Long. (get-in % [:date :N]))})
          (:Items rawdata))))
 
 (defn -handleRequest [_ in out context]
