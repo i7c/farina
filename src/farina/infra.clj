@@ -334,6 +334,7 @@
         after-state (spawn before-state
                            (reverse (flatten (list infra)))
                            :afterfn (fn [bef aft]
+                                      (Thread/sleep 1000)
                                       (let [[b a _] (diff bef aft)]
                                         (if (some? b) (println "REM " b))
                                         (if (some? a) (println "ADD " a)))
