@@ -31,8 +31,9 @@
 ;  :resource {}
 ;  :state :spawned}
 
-(defn resource [rname ispec dspec breeder & {:keys [updater]
-                                             :or {updater nil}}]
+(defn resource [rname ispec dspec breeder & {:keys [updater deleter]
+                                             :or {updater nil
+                                                  deleter nil}}]
   (fn [state]
     (assoc
       state
@@ -59,6 +60,17 @@
                 (do
                   (println "WARN:" rname "needs update, but there is no updater")
                   resource))
+
+              (= rstate :delete)
+              (if (some? deleter)
+                {:resource (deleter (:resource resource) deps inputs)
+                 :inputs inputs
+                 :state :deleted}
+                (do
+                  (println "WARN:" rname "is to be deleted, but there is no deleter")
+                  resource))
+
+              (= rstate :deleted) resource
 
               (nil? resource)
               {:resource (breeder deps inputs)

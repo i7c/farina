@@ -188,3 +188,26 @@
     (is (nil? b1))
     (is (nil? a2))
     (is (nil? b2))))
+
+(deftest deleter-deletes-flagged-resource
+  (let [initial (spawn {} (list (resource :foo {:v 1} [] (fn [d i] i))))
+        [a1 b1 _] (diff initial {:foo {:inputs {:v 1}
+                                       :resource {:v 1}
+                                       :state :spawned}
+                                 :outcome :complete})
+
+        after-marking (spawn initial (list #(assoc-in % [:foo :state] :delete)))
+
+        after-deleting (spawn after-marking (list (resource :foo
+                                                            {:v 1}
+                                                            []
+                                                            (fn [d i] i)
+                                                            :deleter (fn [r d i] nil))))
+        [a2 b2 _] (diff after-deleting {:foo {:inputs {:v 1}
+                                              :resource nil
+                                              :state :deleted}
+                                        :outcome :complete})]
+    (is (nil? a1))
+    (is (nil? b1))
+    (is (nil? a2))
+    (is (nil? b2))))
