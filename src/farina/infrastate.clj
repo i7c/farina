@@ -64,6 +64,7 @@
               (= rstate :needs-update)
               (if (some? updater)
                 {:resource (updater (:resource resource) deps inputs)
+                 :depends-on dspec
                  :inputs inputs
                  :state :spawned}
                 (do
@@ -72,9 +73,12 @@
 
               (= rstate :delete)
               (if (some? deleter)
-                {:resource (deleter (:resource resource) deps inputs)
-                 :inputs inputs
-                 :state :deleted}
+                (if (empty? (dependants state rname))
+                  {:resource (deleter (:resource resource) deps inputs)
+                   :depends-on dspec
+                   :inputs inputs
+                   :state :deleted}
+                  resource)
                 (do
                   (println "WARN:" rname "is to be deleted, but there is no deleter")
                   resource))
@@ -84,4 +88,5 @@
               (nil? resource)
               {:resource (breeder deps inputs)
                :inputs inputs
+               :depends-on dspec
                :state :spawned})))))))

@@ -63,6 +63,7 @@
                               :a 6
                               :b {:x "Hello" :y 42}
                               :c {:state :spawned
+                                  :depends-on [:b]
                                   :inputs {:i1 "foo"}
                                   :resource {:z "foo" :x "Hello" :y 42}}})]
     (is (nil? a))
@@ -89,9 +90,11 @@
         [a b _] (diff result {:outcome :complete
                               :a {:state :spawned
                                   :inputs {}
+                                  :depends-on [:b]
                                   :resource {:other {:x 1 :y 2}}}
                               :b {:state :spawned
                                   :inputs {}
+                                  :depends-on []
                                   :resource {:x 1 :y 2}}})]
     (is (nil? a))
     (is (nil? b))))
@@ -123,8 +126,10 @@
         [a b _] (diff result {:outcome :complete
                               :a {:state :spawned
                                   :inputs {}
+                                  :depends-on []
                                   :resource {:x 42}}
                               :b {:state :spawned
+                                  :depends-on [:a]
                                   :inputs {:i1 84}
                                   :resource {:x 84}}})]
     (is (nil? a))
@@ -166,6 +171,7 @@
         spawned (spawn initial res)
 
         [a1 b1 _] (diff spawned {:foo {:inputs {:v 1}
+                                       :depends-on []
                                        :resource {:v 1}
                                        :state :spawned}
                                  :outcome :complete})
@@ -179,6 +185,7 @@
         updated (spawn spawned updated-res)
 
         [a2 b2 _] (diff updated {:foo {:inputs {:v 1 :useless 5}
+                                       :depends-on []
                                        :resource {:v 2}
                                        :state :spawned}
                                  :outcome :complete})]
@@ -191,6 +198,7 @@
 (deftest deleter-deletes-flagged-resource
   (let [initial (spawn {} (list (resource :foo {:v 1} [] (fn [d i] i))))
         [a1 b1 _] (diff initial {:foo {:inputs {:v 1}
+                                       :depends-on []
                                        :resource {:v 1}
                                        :state :spawned}
                                  :outcome :complete})
@@ -203,6 +211,7 @@
                                                             (fn [d i] i)
                                                             :deleter (fn [r d i] nil))))
         [a2 b2 _] (diff after-deleting {:foo {:inputs {:v 1}
+                                              :depends-on []
                                               :resource nil
                                               :state :deleted}
                                         :outcome :complete})]
@@ -225,3 +234,24 @@
                :bar {}}
         dependants (dependants state :baz)]
     (is (= dependants []))))
+
+(deftest keep-deletemarked-resource-with-dependants
+  (let [brood (list (resource :dependee {} [] (fn [d i] i)
+                              :deleter (fn [r d i] (throw (IllegalStateException. "Deleted resource with dependants"))))
+                    (resource :dependant {} [:dependee] (fn [d i] i)))
+        initial (spawn {} brood)
+        after-marking (spawn initial #(assoc-in % [:dependee :state] :delete))
+
+        [a1 b1 _] (diff after-marking {:dependee {:inputs {} :depends-on [] :resource {} :state :delete}
+                                       :dependant {:inputs {} :depends-on [:dependee] :resource {} :state :spawned}
+                                       :outcome :complete})
+
+        after-deleting (spawn after-marking brood)
+
+        [a2 b2 _] (diff after-deleting {:dependee {:inputs {} :depends-on [] :resource {} :state :delete}
+                                        :dependant {:inputs {} :depends-on [:dependee] :resource {} :state :spawned}
+                                        :outcome :complete})]
+    (is (nil? a1))
+    (is (nil? b1))
+    (is (nil? a2))
+    (is (nil? b2))))
