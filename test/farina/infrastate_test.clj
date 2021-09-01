@@ -97,7 +97,7 @@
     (is (nil? b))))
 
 (deftest input-change-leads-to-stable-resource-state
-  (let [brood (list (resource :a {:i1 "foo"} [] (fn [deps ins] {:x (ins :i1)})))
+  (let [brood (resource :a {:i1 "foo"} [] (fn [deps ins] {:x (ins :i1)}))
         state {:outcome :complete
                :a {:state :spawned
                    :inputs {:i1 "bar"}
@@ -131,11 +131,10 @@
     (is (nil? b))))
 
 (deftest input-resolver-never-called-when-dep-missing
-  (let [brood (list
-                (resource :a
-                          {:i1 #(throw (IllegalStateException. "!"))}
-                          [:b]
-                          (fn [d i] nil)))
+  (let [brood (resource :a
+                        {:i1 #(throw (IllegalStateException. "!"))}
+                        [:b]
+                        (fn [d i] nil))
         result (spawn {} brood)
         [a b _] (diff result {:outcome :complete
                               :a {:state :unresolved-deps}})]
@@ -164,7 +163,7 @@
                       :updater (fn [s d i] s))
 
         initial {}
-        spawned (spawn initial (list res))
+        spawned (spawn initial res)
 
         [a1 b1 _] (diff spawned {:foo {:inputs {:v 1}
                                        :resource {:v 1}
@@ -177,7 +176,7 @@
                               (fn [d i] i)
                               :updater (fn [s d i]
                                          (assoc s :v 2)))
-        updated (spawn spawned (list updated-res))
+        updated (spawn spawned updated-res)
 
         [a2 b2 _] (diff updated {:foo {:inputs {:v 1 :useless 5}
                                        :resource {:v 2}

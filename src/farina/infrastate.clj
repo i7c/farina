@@ -1,10 +1,11 @@
 (ns farina.infrastate
   (:require [clojure.data :refer [diff]]))
 
-(defn spawn [initial-state brood & {:keys [beforefn afterfn]
-                                    :or {beforefn identity
-                                         afterfn (fn [bef aft] aft)}}]
-  (let [intercepted (map #(fn [before]
+(defn spawn [initial-state brood-or-fn & {:keys [beforefn afterfn]
+                                          :or {beforefn identity
+                                               afterfn (fn [bef aft] aft)}}]
+  (let [brood (if (fn? brood-or-fn) (list brood-or-fn) brood-or-fn)
+        intercepted (map #(fn [before]
                             (beforefn before)
                             (let [after (% before)]
                               (afterfn before after)
