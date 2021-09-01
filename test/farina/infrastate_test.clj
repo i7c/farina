@@ -143,8 +143,8 @@
 
 (deftest resolve-inputs-with-dependencies
   (let [deps {:r1 {:state :spawned
-                    :inputs {}
-                    :resource {:x "foo"}}}
+                   :inputs {}
+                   :resource {:x "foo"}}}
         ispec {:a "bar"
                :b 42
                :c #(get-in % [:r1 :resource :x])}
