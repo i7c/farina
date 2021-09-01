@@ -210,3 +210,18 @@
     (is (nil? b1))
     (is (nil? a2))
     (is (nil? b2))))
+
+(deftest find-all-dependants
+  (let [state {:foo {:depends-on [:bar :baz]}
+               :bar {:depends-on [:baz]}
+               :nop {:depends-on [:bar]}
+               :baz {:depends-on []}}
+
+        dependants (dependants state :baz)]
+    (is (= dependants [:foo :bar]))))
+
+(deftest find-dependants-of-non-compliant-resources
+  (let [state {:foo {:x 10}
+               :bar {}}
+        dependants (dependants state :baz)]
+    (is (= dependants []))))

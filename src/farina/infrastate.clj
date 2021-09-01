@@ -27,6 +27,14 @@
                 [% (% ispec)])
              (keys ispec))))
 
+(defn dependants [state me]
+  (->> state
+       (seq)
+       (filter #(let [deps (get (second %) :depends-on)
+                      deps (if (vector? deps) (set deps) (set nil))]
+                  (contains? deps me)))
+       (map first)))
+
 ; Suggested resource structure
 ; {:inputs []
 ;  :resource {}
