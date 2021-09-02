@@ -8,6 +8,7 @@
 
 (def basename "farina")
 (def bucketname basename)
+(def jarpath "target/uberjar/farina-0.1.0-SNAPSHOT-standalone.jar")
 
 (def storage
   (list
