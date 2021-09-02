@@ -357,7 +357,7 @@
 
 (defn mark-stale [& resources]
   (apply comp
-         (map #(fn [s] (assoc s % (assoc (% s) :state :needs-update))) resources)))
+         (map #(fn [s] (assoc-in s [% :state] :needs-update)) resources)))
 
 (defn mark-delete [& resources]
   (apply comp
