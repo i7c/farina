@@ -80,7 +80,8 @@
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
               :updater (fn [s d i]
-                         (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
+                         (awsinfra/lambda-update-code (:FunctionName s) jarpath))
+              :deleter awsinfra/lambda-deleter)
 
     (resource :eventbridgerule/downloader
               {:name (str basename "-downloader")
@@ -205,7 +206,8 @@
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
               :updater (fn [s d i]
-                         (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
+                         (awsinfra/lambda-update-code (:FunctionName s) jarpath))
+              :deleter awsinfra/lambda-deleter)
 
     (resource :eventbridgerule/cruncher
               {:Name (str basename "-cruncher")
@@ -298,7 +300,8 @@
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
               :updater (fn [s d i]
-                         (awsinfra/lambda-update-code (:FunctionName s) jarpath)))
+                         (awsinfra/lambda-update-code (:FunctionName s) jarpath))
+              :deleter awsinfra/lambda-deleter)
 
     (resource :lambdapermission/querier
               {:StatementId "apigw-can-invoke"

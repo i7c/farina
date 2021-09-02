@@ -156,3 +156,8 @@
     {:op :UpdateFunctionCode
      :request {:FunctionName fname
                :ZipFile (byte-streams/to-byte-array (java.io.File. path))}}))
+
+(def lambda-deleter
+  (fn [r d i] (generic-request lambda
+                               {:op :DeleteFunction
+                                :request {:FunctionName (:FunctionName r)}})))
