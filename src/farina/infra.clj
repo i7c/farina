@@ -118,7 +118,13 @@
                              :Arn (get-in % [:lambda/downloader :resource :FunctionArn])}])}
               [:eventbridgerule/downloader :lambda/downloader]
               (fn [d i]
-                (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i))))))
+                (awsinfra/put-eventbridge-rule-targets (:rule i) (:targets i)))
+              :deleter (fn [r d i]
+                         (awsinfra/generic-request
+                           awsclient/eb
+                           {:op :RemoveTargets
+                            :request {:Rule (:rule i)
+                                      :Ids "farina-downloader"}})))))
 
 (defn cruncher [jarpath]
   (list
@@ -230,13 +236,16 @@
 
     (resource :eventbridgerule-target/cruncher
               {:Rule #(get-in % [:eventbridgerule/cruncher :inputs :Name])
-               :Targets #(do
-                           [{:Id "farina-cruncher"
-                             :Arn (get-in % [:lambda/cruncher :resource :FunctionArn])}])}
+               :Targets #(do [{:Id "farina-cruncher"
+                               :Arn (get-in % [:lambda/cruncher :resource :FunctionArn])}])}
               [:eventbridgerule/cruncher :lambda/cruncher]
               (fn [d i]
-                (awsinfra/generic-request awsclient/eb {:op :PutTargets :request i})))
-  ))
+                (awsinfra/generic-request awsclient/eb {:op :PutTargets :request i}))
+              :deleter (fn [r d i] (awsinfra/generic-request
+                                     awsclient/eb
+                                     {:op :RemoveTargets
+                                      :request {:Rule (:Rule i)
+                                            :Ids "farina-cruncher"}})))))
 
 (defn querier [jarpath]
   (list
