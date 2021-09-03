@@ -79,8 +79,7 @@
                    :request (assoc
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
-              :updater (fn [s d i]
-                         (awsinfra/lambda-update-code (:FunctionName s) jarpath))
+              :updater (fn [s d i] (awsinfra/lambda-update-code (:FunctionName s) jarpath))
               :deleter awsinfra/lambda-deleter)
 
     (resource :eventbridgerule/downloader
@@ -211,8 +210,7 @@
                    :request (assoc
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
-              :updater (fn [s d i]
-                         (awsinfra/lambda-update-code (:FunctionName s) jarpath))
+              :updater (fn [s d i] (awsinfra/lambda-update-code (:FunctionName s) jarpath))
               :deleter awsinfra/lambda-deleter)
 
     (resource :eventbridgerule/cruncher
@@ -308,8 +306,7 @@
                    :request (assoc
                               i
                               :Code {:ZipFile (byte-streams/to-byte-array (java.io.File. jarpath))})}))
-              :updater (fn [s d i]
-                         (awsinfra/lambda-update-code (:FunctionName s) jarpath))
+              :updater (fn [s d i] (awsinfra/lambda-update-code (:FunctionName s) jarpath))
               :deleter awsinfra/lambda-deleter)
 
     (resource :lambdapermission/querier
