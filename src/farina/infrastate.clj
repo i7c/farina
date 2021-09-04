@@ -43,9 +43,13 @@
 ;  :resource {}
 ;  :state :spawned}
 
-(defn resource [rname ispec dspec breeder & {:keys [updater deleter]
-                                             :or {updater nil
-                                                  deleter nil}}]
+
+(defn res [rname & {:keys [ispec dspec breeder updater deleter]
+                    :or {ispec {}
+                         dspec []
+                         breeder #(do {})
+                         updater nil
+                         deleter nil}}]
   (fn [state]
     (assoc
       state
@@ -93,3 +97,15 @@
                :inputs inputs
                :depends-on dspec
                :state :spawned})))))))
+
+(defn resource
+  ^:deprecated
+  [rname ispec dspec breeder & {:keys [updater deleter]
+                                :or {updater nil
+                                     deleter nil}}]
+  (res rname
+       :ispec ispec
+       :dspec dspec
+       :breeder breeder
+       :updater updater
+       :deleter deleter))
