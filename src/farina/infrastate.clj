@@ -30,9 +30,12 @@
 (defn dependants [state me]
   (->> state
        (seq)
-       (filter #(let [deps (get (second %) :depends-on)
+       (filter #(let [res (second %)
+                      deps (get res :depends-on)
                       deps (if (vector? deps) (set deps) (set nil))]
-                  (contains? deps me)))
+                  (and
+                    (or (= (:state res) :needs-update) (= (:state res) :spawned))
+                    (contains? deps me))))
        (map first)))
 
 ; Suggested resource structure

@@ -221,10 +221,10 @@
     (is (nil? b2))))
 
 (deftest find-all-dependants
-  (let [state {:foo {:depends-on [:bar :baz]}
-               :bar {:depends-on [:baz]}
-               :nop {:depends-on [:bar]}
-               :baz {:depends-on []}}
+  (let [state {:foo {:state :spawned :depends-on [:bar :baz]}
+               :bar {:state :spawned :depends-on [:baz]}
+               :nop {:state :spawned :depends-on [:bar]}
+               :baz {:state :spawned :depends-on []}}
 
         dependants (dependants state :baz)]
     (is (= dependants [:foo :bar]))))
