@@ -44,10 +44,11 @@
 ;  :state :spawned}
 
 
-(defn res [rname & {:keys [ispec dspec breeder updater deleter]
+(defn res [rname & {:keys [ispec dspec breeder after updater deleter]
                     :or {ispec {}
                          dspec []
                          breeder (fn [d i] i)
+                         after (fn [r d i] r)
                          updater nil
                          deleter nil}}]
   (fn [state]
@@ -91,12 +92,21 @@
                   resource))
 
               (= rstate :deleted) resource
+              (= rstate :failed) resource
 
               (nil? resource)
-              {:resource (breeder deps inputs)
-               :inputs inputs
-               :depends-on dspec
-               :state :spawned})))))))
+              (let [new-resource (breeder deps inputs)]
+                (if (some? new-resource)
+                  (try {:resource (after new-resource deps inputs)
+                        :inputs inputs
+                        :depends-on dspec
+                        :state :spawned}
+                       (catch Exception e
+                         {:resource new-resource
+                          :inputs inputs
+                          :depends-on dspec
+                          :state :failed}))
+                  nil)))))))))
 
 (defn resource
   ^:deprecated

@@ -269,3 +269,39 @@
     (is (= 5 (get-in state [:bar :resource :v1])))
     (is (= 10 (get-in state [:bar :resource :v2])))
     (is (nil? (get-in state [:bar :resource :v3])))))
+
+(deftest after-fn-executes-after-successful-breeder
+  (let [brood (res :foo
+                   :ispec {:x 7}
+                   :breeder (fn [d i] (assoc i :y 42))
+                   :after (fn [r d i]
+                            (is (= (get r :x) 7))
+                            (is (= (get r :y) 42))
+                            (assoc r :z 1337)))
+        state (spawn {} brood)
+        [a b _] (diff state {:foo {:resource {:x 7 :y 42 :z 1337}
+                                   :state :spawned
+                                   :inputs {:x 7}
+                                   :depends-on []}
+                             :outcome :complete})]
+    (is (nil? a))
+    (is (nil? b))))
+
+(deftest after-fn-doesnt-execute-if-breeder-fails
+  (let [brood (res :foo
+                   :breeder (fn [d i] nil)
+                   :after (fn [r d i] (throw (IllegalStateException. "after fn executed"))))]
+    (spawn {} brood)))
+
+(deftest resource-is-created-even-if-after-fn-failes
+  (let [brood (res :foo
+                   :ispec {:x 1}
+                   :after (fn [r d i] (throw (IllegalStateException. "after fn fails"))))
+        state (spawn {} brood)
+        [a b _] (diff state {:outcome :complete
+                             :foo {:resource {:x 1}
+                                   :depends-on []
+                                   :inputs {:x 1}
+                                   :state :failed}})]
+    (is (nil? a))
+    (is (nil? b))))
