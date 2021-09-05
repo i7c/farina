@@ -255,3 +255,17 @@
     (is (nil? b1))
     (is (nil? a2))
     (is (nil? b2))))
+
+(deftest dep-resolves-paths-within-dependency
+  (let [brood (list (res :foo
+                         :ispec {:a {:b {:c 5}
+                                     :d 10}})
+                    (res :bar
+                         :dspec [:foo]
+                         :ispec {:v1 (dep :foo :a :b :c)
+                                 :v2 (dep :foo :a :d)
+                                 :v3 (dep :nop :x)}))
+        state (spawn {} brood)]
+    (is (= 5 (get-in state [:bar :resource :v1])))
+    (is (= 10 (get-in state [:bar :resource :v2])))
+    (is (nil? (get-in state [:bar :resource :v3])))))

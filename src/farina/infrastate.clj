@@ -47,7 +47,7 @@
 (defn res [rname & {:keys [ispec dspec breeder updater deleter]
                     :or {ispec {}
                          dspec []
-                         breeder #(do {})
+                         breeder (fn [d i] i)
                          updater nil
                          deleter nil}}]
   (fn [state]
@@ -109,3 +109,7 @@
        :breeder breeder
        :updater updater
        :deleter deleter))
+
+(defn dep [depname & path]
+  (print (type path))
+  #(get-in % (conj path :resource depname)))
