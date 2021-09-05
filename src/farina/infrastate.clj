@@ -110,6 +110,10 @@
        :updater updater
        :deleter deleter))
 
+(defmacro definfra [infraname & brood]
+  `(def ~infraname
+     (list ~@brood)))
+
 (defn dep [depname & path]
   (print (type path))
   #(get-in % (conj path :resource depname)))
